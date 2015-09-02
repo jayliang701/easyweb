@@ -18,8 +18,6 @@ exports.init = function(cdnUrl) {
 
     exports.addFilter('cdn', cdn);
     exports.addFilter('number_toFixed', number_toFixed);
-    exports.addFilter('mapping_user_type', mapping_user_type);
-    exports.addFilter('mapping_user_title', mapping_user_title);
     exports.addFilter('datetime_isDiffDate', datetime_isDiffDate);
     exports.addFilter('datetime_format', datetime_format);
 }
