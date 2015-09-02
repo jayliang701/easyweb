@@ -2,7 +2,7 @@
  * Created by Jay on 14-5-21.
  */
 
-var Utils = require("./utils/Utils.js");
+var Utils = require("./Utils.js");
 var EMAIL = require("emailjs/email");
 var FS = require("fs");
 var PATH = require("path");
