@@ -10,7 +10,7 @@ exports.model = {
 exports.net = {
 	EdgeServiceProxy: require("./net/EdgeServiceProxy"),
 	HTTPRequest: require("./net/HTTPRequest"),
-	HTTPService: require("./net/HTTPService"),
+	HTTPServer: require("./net/HTTPServer"),
 	SocketClient: require("./net/SocketClient"),
 	SocketConnector: require("./net/SocketConnector"),
 	SocketPacket: require("./net/SocketPacket"),
