@@ -4,7 +4,7 @@
 
 var TemplateLib = require("./TemplateLib.js");
 var Utils = require("./Utils.js");
-var Redis = require("./model/Redis.js");
+var Redis = require("../model/Redis.js");
 var Request = require("min-request");
 
 var config;
