@@ -140,7 +140,7 @@ function send(data, callBack) {
     packet.requestPool[packetID] = { id:packetID, sendTime:sendTime, callBack:callBack };
 
     var packet = [ packetID, data ];
-    this.write(PACKET_HEAD + JSON.stringify(packet) + PACKET_END);
+    this.write(PACKET_HEAD + encodeURIComponent(JSON.stringify(packet)) + PACKET_END);
 }
 
 module.exports = SocketPacket;
