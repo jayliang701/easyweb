@@ -67,14 +67,14 @@ function checkIsAllowToSend(phone, callBack) {
     });
 }
 
-function sendMessage(phone, templateKey, args, callBack, user) {
+function sendMessage(phone, templateKey, params, callBack) {
 
     checkIsAllowToSend(phone, function(redisLog, errCode, errMsg) {
         if (redisLog == -1) {
             callBack(false, errCode, errMsg);
         } else {
 
-            var tpl = TemplateLib.useTemplate("sms", templateKey, args, user);
+            var tpl = TemplateLib.useTemplate("sms", templateKey, params);
             var msg = tpl.content;
 
             //http://utf8.sms.webchinese.cn/?Uid=本站用户名&Key=接口安全秘钥(或KeyMD5=md5(接口安全秘钥,32位大写))&smsMob=手机号码&smsText=短信内容
