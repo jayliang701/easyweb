@@ -8,15 +8,17 @@ var UTIL = require('util');
 var EventEmitter = require("events").EventEmitter;
 var Dispatcher = new EventEmitter();
 
-var prefix;
-
 var client;
+
+exports.isConnected = function() {
+    return client && client.__working == true;
+}
 
 function setExpire(key, val) {
     if (!val || val == - 1) {
         //no expired
     } else {
-        client.expire(prefix + key, val);
+        client.expire(exports.join(key), val);
     }
 }
 
@@ -66,7 +68,7 @@ exports.save = function(key, val, expired, callBack) {
     }
     exports.set(CACHE_PREFIX + key, val, function(redisRes, redisErr) {
         if (redisRes) {
-            console.log('2 -> cache [' + key + '] saved. expired ==> ' + expired);
+            //console.log('2 -> cache [' + key + '] saved. expired ==> ' + expired);
             Dispatcher.emit("save", tempKey, originalKey, originalVal);
         } else {
             Dispatcher.emit("error", tempKey, originalKey, redisErr);
@@ -90,7 +92,7 @@ exports.read = function(key, callBack) {
                     //res is not a json string
                 }
             }
-            console.log('read cache [' + key + '] from 2.');
+            //console.log('read cache [' + key + '] from 2.');
             if (callBack) callBack(res);
         }
     });
@@ -100,12 +102,12 @@ exports.remove = function(key, callBack) {
     if (UTIL.isArray(key)) {
         key = key.join("->");
     }
-    console.log('clear cache [' + key + '] from 1.');
+    //console.log('clear cache [' + key + '] from 1.');
     exports.del(CACHE_PREFIX + key, callBack);
 }
 
 exports.set = function(key, val, callBack, expired) {
-    client.set(prefix + key, val, function (err, res) {
+    client.set(exports.join(key), val, function (err, res) {
         setExpire(key, expired);
         if (err) console.error("Redis.set(" + key + ") ==> " + err);
         if (callBack) {
@@ -115,7 +117,7 @@ exports.set = function(key, val, callBack, expired) {
 }
 
 exports.setHash = function(key, field, val, callBack, expired) {
-    client.hset(prefix + key, field, val, function (err, reply) {
+    client.hset(exports.join(key), field, val, function (err, reply) {
         setExpire(key, expired);
         if (err) console.error("Redis.setHash(" + key + ", " + field + ") ==> " + err);
         if (callBack) {
@@ -125,7 +127,7 @@ exports.setHash = function(key, field, val, callBack, expired) {
 }
 
 exports.setHashMulti = function(key, fieldAndVals, callBack, expired) {
-    client.hmset(prefix + key, fieldAndVals, function (err, reply) {
+    client.hmset(exports.join(key), fieldAndVals, function (err, reply) {
         setExpire(key, expired);
         if (err) {
             var temp = (typeof fieldAndVals == "string") ? fieldAndVals : JSON.stringify(fieldAndVals);
@@ -138,7 +140,7 @@ exports.setHashMulti = function(key, fieldAndVals, callBack, expired) {
 }
 
 exports.pushIntoList = function(key, value, callBack) {
-    var args = [prefix + key];
+    var args = [ exports.join(key) ];
     args = args.concat(value);
     args.push(function(err, replay) {
         if (err) console.error("Redis.pushIntoList(" + key + ") ==> " + err);
@@ -150,7 +152,7 @@ exports.pushIntoList = function(key, value, callBack) {
 }
 
 exports.getFromList = function(key, fromIndex, toIndex, callBack) {
-    client.lrange(prefix + key, fromIndex, toIndex, function(err, replay) {
+    client.lrange(exports.join(key), fromIndex, toIndex, function(err, replay) {
         if (err) console.error("Redis.getFromList(" + key + ") ==> " + err);
         if (callBack) {
             callBack(replay, err);
@@ -163,7 +165,7 @@ exports.getWholeList = function(key, callBack) {
 }
 
 exports.setToList = function(key, index, value, callBack) {
-    client.lset(prefix + key, index, value, function(err, replay) {
+    client.lset(exports.join(key), index, value, function(err, replay) {
         if (err) console.error("Redis.setToList(" + key + ") ==> " + err);
         if (callBack) {
             callBack(err ? false : true, err);
@@ -172,7 +174,7 @@ exports.setToList = function(key, index, value, callBack) {
 }
 
 exports.get = function(key, callBack) {
-    client.get(prefix + key, function(err, reply) {
+    client.get(exports.join(key), function(err, reply) {
         // reply is null when the key is missing
         if (err) console.error("Redis.get(" + key + ") ==> " + err);
         if (callBack) {
@@ -182,7 +184,7 @@ exports.get = function(key, callBack) {
 }
 
 exports.getHash = function(key, field, callBack) {
-    client.hget(prefix + key, field, function (err, reply) {
+    client.hget(exports.join(key), field, function (err, reply) {
         if (err) {
             console.error("Redis.getHash(" + key + ", " + field + ") ==> " + err);
         }
@@ -193,7 +195,7 @@ exports.getHash = function(key, field, callBack) {
 }
 
 exports.getHashMulti = function(key, field, callBack) {
-    client.hmget(prefix + key, field, function (err, reply) {
+    client.hmget(exports.join(key), field, function (err, reply) {
         if (err) {
             console.error("Redis.getHashMulti(" + key + ", " + field + ") ==> " + err);
         }
@@ -204,7 +206,7 @@ exports.getHashMulti = function(key, field, callBack) {
 }
 
 exports.getHashAll = function(key, callBack) {
-    client.hgetall(prefix + key, function (err, reply) {
+    client.hgetall(exports.join(key), function (err, reply) {
         if (err) {
             console.error("Redis.getHashAll(" + key + ") ==> " + err);
         }
@@ -215,7 +217,7 @@ exports.getHashAll = function(key, callBack) {
 }
 
 exports.getHashKeys = function(key, callBack) {
-    client.hkeys(prefix + key, function (err, reply) {
+    client.hkeys(exports.join(key), function (err, reply) {
         if (err) {
             console.error("Redis.getHashKeys(" + key + ") ==> " + err);
         }
@@ -258,7 +260,7 @@ exports.getHashToObj = function(key, callBack) {
 }
 
 exports.delHashField = function(key, fields, callBack) {
-    client.hdel.apply(client, [prefix + key ].concat(fields).concat(function(err) {
+    client.hdel.apply(client, [ exports.join(key) ].concat(fields).concat(function(err) {
         if (callBack) {
             callBack(err ? false : true, err);
         }
@@ -266,7 +268,7 @@ exports.delHashField = function(key, fields, callBack) {
 }
 
 exports.del = function(key, callBack) {
-    client.del(prefix + key, function(err) {
+    client.del(exports.join(key), function(err) {
         if (callBack) {
             callBack(err ? false : true, err);
         }
@@ -295,16 +297,58 @@ exports.do = function (cmd, args, callBack) {
 }
 
 exports.join = function(key) {
-    return prefix + key;
+    var redisKey = KEY_CACHE[key];
+    if (redisKey) return redisKey;
+
+    var group = "*";
+    if (key.charAt(0) == "@" && GROUP_REG.test(key)) {
+        var g = key.match(GROUP_REG);
+        if (g && g.length > 0) {
+            redisKey = key;
+            group = g[0].substr(1, g[0].length - 3);
+            key = key.substring(group.length + 3);
+        }
+        else return null;
+    }
+
+    var prefix = groups[group];
+    KEY_CACHE[redisKey] = prefix + key;
+    return KEY_CACHE[redisKey];
 }
+
+var groups = {};
+
+var KEY_CACHE = {};
+var GROUP_REG = /@[a-zA-Z0-9]+->/;
 
 exports.start = function(host, port, pass, prefixName, callBack) {
 
-    prefix = prefixName;
+    if (typeof prefixName == "object") {
+        for (var key in prefixName) {
+            groups[key] = prefixName[key];
+        }
+    } else {
+        groups["*"] = prefixName;
+    }
 
     client = REDIS.createClient(port, host, { auth_pass: pass });
+    client.__working = false;
+    client.__startCallBack = callBack;
 
+    client.on("error", function(err) {
+        client.__working = false;
+        console.error(err);
+        if (client.__startCallBack) {
+            client.__startCallBack(err);
+            client.__startCallBack = null;
+        }
+    });
     client.on("connect", function() {
-        if (callBack) callBack();
+        console.log("Redis Server<" + host + ":" + port + "> is connected.");
+        client.__working = true;
+        if (client.__startCallBack) {
+            client.__startCallBack();
+            client.__startCallBack = null;
+        }
     });
 }

@@ -8,11 +8,11 @@ var Redis = require("../model/Redis.js");
 var Request = require("min-request");
 
 var config;
-var DEBUG = false;
+var DEBUG = global.VARS.debug;
+var SIMULATION = true;
 
-exports.init = function(setting, debug) {
+exports.init = function(setting) {
     config = setting;
-    DEBUG = debug;
 }
 
 function logAfterSend(phone, redisObj) {
@@ -35,16 +35,16 @@ function logAfterSend(phone, redisObj) {
 function checkIsAllowToSend(phone, callBack) {
     Redis.get("sms_log_" + phone, function(redisRes, err) {
         if (err) {
-            callBack(-1, err);
+            callBack(null, err);
         } else {
             if (redisRes) {
                 try {
                     var obj = JSON.parse(redisRes);
                     if (Number(obj.lastSendTime) > 0) {
-                        var now = Date.now();
-                        if (now - Number(obj.lastSendTime) < config.limit.duration) {
+                        var passedTime = Date.now() - Number(obj.lastSendTime);
+                        if (passedTime < config.limit.duration) {
                             //too fast
-                            callBack(-1, new Error("SMS_SEND_TOO_FAST"));
+                            callBack(null, new Error("SMS_SEND_TOO_FAST"));
                             return;
                         }
                     }
@@ -52,55 +52,78 @@ function checkIsAllowToSend(phone, callBack) {
                     if (sendTimes < 0) sendTimes = 0;
                     if (sendTimes > config.limit.maxPerDay) {
                         //over max times in a day
-                        callBack(-1, new Error("SMS_SEND_OVER_MAX_TIMES"));
+                        callBack(null, new Error("SMS_SEND_OVER_MAX_TIMES"));
                         return;
                     }
                     callBack(obj);
                 } catch (exp) {
-                    callBack(-1, exp);
-                    return;
+                    callBack(null, exp);
                 }
             } else {
-                callBack(null);
+                callBack();
             }
         }
     });
 }
 
-function sendMessage(phone, templateKey, params, callBack) {
-
-    checkIsAllowToSend(phone, function(redisLog, errCode, errMsg) {
-        if (redisLog == -1) {
-            callBack(false, errCode, errMsg);
-        } else {
-
+function sendMessage(phone, templateKey, params, callBack, enforce) {
+    if (!String(phone).hasValue() || !Utils.cnCellPhoneCheck(phone)) {
+        var err = new Error("invalid cn cell phone");
+        if (DEBUG) console.error(err.toString());
+        if (callBack) callBack(false, err);
+        return;
+    }
+    if (SIMULATION) {
+        setTimeout(function() {
+            console.log("Simulate SMS send ----> ");
             var tpl = TemplateLib.useTemplate("sms", templateKey, params);
-            var msg = tpl.content;
+            console.log(tpl.content);
 
-            //http://utf8.sms.webchinese.cn/?Uid=本站用户名&Key=接口安全秘钥(或KeyMD5=md5(接口安全秘钥,32位大写))&smsMob=手机号码&smsText=短信内容
-            var url = config.api;
-            url += "&keyMD5=" + Utils.md5(config.secret).toUpperCase();
-            url += "&smsMob=" + phone;
-            url += "&smsText=" + msg;
+            if (callBack) callBack(true);
+        }, 50);
+        return;
+    }
 
-            if (DEBUG) console.log("SMS ready to send ==> " + url);
-
-            Request(url, { method: "POST", body: {} },
-                function(err, res, body) {
-                    if (DEBUG) console.log("sent a message to phone: " + phone + "    response: " + body);
-                    if (err) {
-                        callBack(false, err);
-                    } else {
-                        if (Number(body) > 0) {
-                            logAfterSend(phone, redisLog);
-                            callBack(true);
-                        } else {
-                            callBack(false, new Error("agent error ==> " + body));
-                        }
-                    }
+    if (enforce) {
+        send(phone, templateKey, params, callBack);
+    } else {
+        checkIsAllowToSend(phone, function(redisLog, err) {
+            if (err) {
+                if (callBack) callBack(false, err);
+            } else {
+                send(phone, templateKey, params, function(flag, err) {
+                    if (flag) logAfterSend(phone, redisLog);
+                    if (callBack) callBack(flag, err);
                 });
-        }
-    });
+            }
+        });
+    }
+}
+
+function send(phone, templateKey, params, callBack) {
+    var tpl = TemplateLib.useTemplate("sms", templateKey, params);
+    var msg = tpl.content;
+    //http://utf8.sms.webchinese.cn/?Uid=本站用户名&Key=接口安全秘钥(或KeyMD5=md5(接口安全秘钥,32位大写))&smsMob=手机号码&smsText=短信内容
+    var url = config.api;
+    url += "&KeyMD5=" + Utils.md5(config.secret).toUpperCase();
+    url += "&smsMob=" + phone;
+    url += "&smsText=" + msg;
+
+    if (DEBUG) console.log("SMS ready to send ==> " + url);
+
+    Request(url, { method: "POST", body: {} },
+        function(err, res, body) {
+            if (DEBUG) console.log("sent a message to phone: " + phone + "    response: " + body);
+            if (err) {
+                if (callBack) callBack(false, err);
+            } else {
+                if (Number(body) > 0) {
+                    if (callBack) callBack(true);
+                } else {
+                    if (callBack) callBack(false, new Error("sms agent error ==> " + body));
+                }
+            }
+        });
 }
 
 exports.sendMessage = sendMessage;

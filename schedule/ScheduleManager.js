@@ -45,7 +45,7 @@ exports.start = function(debug) {
     DEBUG = debug;
 
     if (!config) {
-        config = FS.readFileSync(PATH.join(global.APP_ROOT, "server/schedule/config.json"));
+        config = FS.readFileSync(PATH.join(global.APP_ROOT, "server/schedule/localdev.json"));
         config = JSON.parse(config.toString("utf8"));
     }
 

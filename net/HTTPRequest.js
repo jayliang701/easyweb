@@ -30,7 +30,7 @@ HTTPRequest.prototype.getType = function() {
 }
 
 HTTPRequest.prototype.sayOK = function(data) {
-    this.res.json({code:1, data:data, msg:"OK"});
+    this.res.json({code:1, data:data ? data : { flag:1 }, msg:"OK"});
 }
 
 HTTPRequest.prototype.sayError = function(code, msg) {
@@ -39,6 +39,7 @@ HTTPRequest.prototype.sayError = function(code, msg) {
     } else if (typeof msg == 'object') {
         msg = msg.toString();
     }
+    console.fail(code, msg);
     this.res.json({code:code, data:{}, msg:msg});
 }
 

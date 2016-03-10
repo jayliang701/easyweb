@@ -1,0 +1,37 @@
+/**
+ * Created by Jay on 15-3-29.
+ */
+
+module.exports = {
+    //system
+    "OK": 1,
+    "UNKNOWN": 2,
+    "NO_SUCH_METHOD": 3,
+    "NO_PERMISSION": 100,
+    "SERVER_ERROR": 101,
+    "REQUEST_PARAMS_INVALID": 102,
+    "DB_ERROR": 103,
+    "REDIS_ERROR": 104,
+    "UPLOAD_TOKEN_ERROR": 105,
+    "ILLEGAL_ACTION": 106,
+    "PROXY_ERROR": 107,
+    "PROXY_REQUEST_ERROR": 108,
+    "MODEL_ERROR": 109,
+    "SESSION_ERROR": 110,
+    "CORE_SERVICE_ERROR": 111,
+
+    //sms
+    "SMS_SERVICE_ERROR": 200,
+    "SMS_SEND_TOO_FAST": 201,
+    "SMS_SEND_OVER_MAX_TIMES": 202,
+    "SMS_SEND_ERROR": 203,
+
+    //email
+    "MAIL_SERVICE_ERROR": 210,
+
+    //codes
+    "INVALID_INVITE_CODE": 220,
+    "INVITE_CODE_UNAVAILABLE": 221,
+    "INVALID_VALIDATION_CODE": 222,
+    "INVALID_CAPTCHA_CODE": 223
+}

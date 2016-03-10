@@ -2,7 +2,6 @@
  * Created by Jay on 2015/8/24.
  */
 var FS = require("fs");
-var PATH = require("path");
 
 var db = require("./MongoDB");
 var memory = require("./MemoryCache");
@@ -22,7 +21,7 @@ var CACHE_POOL = {
 
 exports.init = function(option, callBack) {
 
-    CACHE_CONFIG = FS.readFileSync(PATH.join(global.APP_ROOT, "server/config/cache.config"));
+    CACHE_CONFIG = FS.readFileSync(global.getConfigPath("cache.config"));
     CACHE_CONFIG = JSON.parse(CACHE_CONFIG.toString("utf8"));
 
     var q = [];
@@ -71,8 +70,8 @@ exports.init = function(option, callBack) {
                     option.redis.port,
                     option.redis.pass,
                     option.redis.prefix,
-                    function() {
-                        cb();
+                    function(err) {
+                        cb(err);
                     });
     });
     Utils.runQueueTask(q, function(err) {
@@ -121,12 +120,12 @@ exports.cacheRead = function(key, callBack, level) {
             return c;
         }
         else {
-            console.log("read from deeper cache...");
+            //console.log("read from deeper cache...");
             CACHE_POOL[2].read(key, function(c2, err) {
                 if (err) {
                     if (callBack) callBack(null, err);
                 } else {
-                    console.log("update level 1 cache...");
+                    //console.log("update level 1 cache...");
                     CACHE_POOL[1].save(originalKey, c2);
                     if (callBack) callBack(c2);
                 }
@@ -174,11 +173,11 @@ exports.refreshExpireTime = function(key, level) {
     if (isNaN(level)) level = 1;
     var time = def["expired." + level];
     if (!time) return;
-    console.log("cache expire time refresh --> " + time);
+    //console.log("cache expire time refresh --> " + time);
     CACHE_POOL[level].setExpireTime(key, time);
 }
 
-exports.insert = function() {
+  exports.insert = function() {
     db.insert.apply(db, arguments);
 }
 exports.insertList = function() {
@@ -192,6 +191,12 @@ exports.findOne = function() {
 }
 exports.findPage = function() {
     db.findPage.apply(db, arguments);
+}
+exports.custom = function() {
+    db.custom.apply(db, arguments);
+}
+exports.aggregate = function() {
+    db.aggregate.apply(db, arguments);
 }
 exports.findAndModify = function() {
     db.findAndModify.apply(db, arguments);
@@ -228,3 +233,9 @@ exports.closeDB = function(name, callBack) {
     });
 }
 
+// If the Node process ends, close all db connections
+process.on('SIGINT', function() {
+    db.closeAll(function () {
+        process.exit(0);
+    });
+});

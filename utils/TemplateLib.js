@@ -27,6 +27,7 @@ exports.init = function(params) {
 function fillParams(str, params) {
     if (!String(str).hasValue()) return str;
     var args = str.match(/%[a-zA-Z_-]+%/mg);
+    args = args ? args : [];
     args.forEach(function(m) {
         var key = m.substring(1, m.length - 1);
         if (PARAMS.hasOwnProperty(key)) {

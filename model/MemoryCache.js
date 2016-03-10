@@ -18,7 +18,7 @@ exports.save = function(key, val, expired, callBack) {
         if (!expired) expired = EXPIRED_MAP[key];
     }
     CACHE.put(key, val, expired);
-    console.log('1 -> cache [' + key + '] saved.');
+    //console.log('1 -> cache [' + key + '] saved.');
     if (callBack) callBack(true);
 }
 
@@ -27,7 +27,7 @@ exports.read = function(key, callBack) {
         key = key.join("->");
     }
     var c = CACHE.get(key);
-    console.log('read cache [' + key + '] from 1.');
+    //console.log('read cache [' + key + '] from 1.');
     if (callBack) callBack(c);
     return c;
 }
@@ -37,7 +37,7 @@ exports.remove = function(key, callBack) {
         key = key.join("->");
     }
     CACHE.del(key);
-    console.log('clear cache [' + key + '] from 1.');
+    //console.log('clear cache [' + key + '] from 1.');
     if (callBack) callBack(true);
 }
 

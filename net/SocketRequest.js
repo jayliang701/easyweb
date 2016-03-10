@@ -5,20 +5,20 @@
 var TCPRequest = require("./TCPRequest");
 var UTIL = require("util");
 
-function SocketRequest(socketClient, packetID, packetData) {
-    this.params = packetData[1];
+function SocketRequest(socketClient, reqID, method, data) {
+    this.params = data;
 
     TCPRequest.apply(this, arguments);
     //req : express request
-    this.client.ip = socketClient.getSocket().remoteAddress;
+    this.client.info = socketClient.info;
+    this.client.ip = socketClient.info.ip;
 
-    var method = packetData[0];
     method = method ? method.split(".") : [ null, null ];
     this.service = method[0];
     this.method = method[1];
 
     this.socketClient = socketClient;
-    this.packetID = packetID;
+    this.reqID = reqID;
 }
 
 UTIL.inherits(SocketRequest, TCPRequest);
@@ -28,7 +28,9 @@ SocketRequest.prototype.getType = function() {
 }
 
 SocketRequest.prototype.sayOK = function(data) {
-    this.socketClient.response(this.packetID, {code:1, data:data, msg:"OK"});
+    if (arguments.length == 0) data = { flag:1 };
+    //socket.callAPIResponse = function(msgID, data, code, msg)
+    this.socketClient.callAPIResponse(this.reqID, {code:1, data:data, msg:"OK"});
 }
 
 SocketRequest.prototype.sayError = function(code, msg) {
@@ -37,7 +39,8 @@ SocketRequest.prototype.sayError = function(code, msg) {
     } else if (typeof msg == 'object') {
         msg = msg.toString();
     }
-    this.socketClient.response(this.packetID, {code:code, data:{}, msg:msg});
+    console.fail(code, msg);
+    this.socketClient.callAPIResponse(this.reqID, {code:code, data:{}, msg:msg});
 }
 
 module.exports = SocketRequest;

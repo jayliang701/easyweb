@@ -2,6 +2,7 @@
  * Created by Jay on 14-5-21.
  */
 
+var TemplateLib = require("./TemplateLib.js");
 var Utils = require("./Utils.js");
 var EMAIL = require("emailjs/email");
 var FS = require("fs");
@@ -11,17 +12,16 @@ var server;
 
 var config;
 
-var DEBUG = false;
+var DEBUG = global.VARS.debug;
 
-exports.init = function(setting, debug) {
+exports.init = function(setting) {
 	config = setting;
-	DEBUG = debug;
 	server = EMAIL.server.connect(config.stamp);
 }
-
+{  }
 exports.send = function(to, templateKey, params, callBack) {
 	var tpl = TemplateLib.useTemplate("mail", templateKey, params);
-	__send(tpl.title, tpl.content, tpl.content, tp, callBack);
+	__send(tpl.title, tpl.content, tpl.content, to, callBack);
 }
 
 function __send(title, msg, htmlMsg, to, callBack) {
