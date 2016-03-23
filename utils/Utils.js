@@ -5,6 +5,13 @@ var ICONV = require('iconv-lite');
 var Crypto = require("crypto");
 var BufferHelper = require('bufferhelper');
 
+Error.create = function(code, msg) {
+    var err = new Error('code: ' + code + ', ' + msg);
+    err.code = code;
+    err.msg = msg;
+    return err;
+}
+
 require("console-stamp")(console, "yyyy-mm-dd HH:MM:ss");
 
 console.fail = function(code, msg, api) {
@@ -791,6 +798,20 @@ exports.randomNumbers = function(length){
     var n = "";
     for (var i=0;i<length;i++) n += parseInt(Math.random()*10);
     return n;
+}
+
+exports.randomString = function(length) {
+    var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz'.split('');
+
+    if (! length) {
+        length = Math.floor(Math.random() * chars.length);
+    }
+
+    var str = '';
+    for (var i = 0; i < length; i++) {
+        str += chars[Math.floor(Math.random() * chars.length)];
+    }
+    return str;
 }
 
 exports.createIdCard = function (){

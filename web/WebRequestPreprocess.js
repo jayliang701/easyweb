@@ -30,12 +30,15 @@ exports.handle = function(req, res, next) {
             if (UTIL.isArray(arguments[0])) {
                 code = arguments[0][0];
                 msg = arguments[0][1];
+            } else if (arguments[0].code && arguments[0].msg) {
+                code = arguments[0].code;
+                msg = arguments[0].msg;
             } else {
                 code = CODES.SERVER_ERROR;
                 msg = arguments[0].toString();
             }
         } else {
-            code = arguments[0];
+            code = arguments[0] == undefined ? CODES.SERVER_ERROR : arguments[0];
             msg = arguments[1];
         }
         if (!msg) {
