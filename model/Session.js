@@ -23,6 +23,7 @@ exports.save = function(user, callBack) {
     var sess = {};
     sess.userid = user.id;
     sess.token = token;
+    sess.username = user.username;
     sess.tokentimestamp = tokentimestamp;
     sess.type = user.type;
 

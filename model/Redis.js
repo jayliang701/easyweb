@@ -296,6 +296,18 @@ exports.do = function (cmd, args, callBack) {
     func.apply(client, args.concat([ done ]));
 }
 
+exports.subscribe = function (channel, callBack) {
+    client.subscribe(channel, callBack);
+}
+
+exports.publish = function (channel, message, callBack) {
+    client.publish(channel, message, callBack);
+}
+
+exports.on = function (event, callBack) {
+    client.on(event, callBack);
+}
+
 exports.join = function(key) {
     var redisKey = KEY_CACHE[key];
     if (redisKey) return redisKey;
