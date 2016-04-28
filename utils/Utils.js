@@ -394,6 +394,20 @@ exports.getFromUrl = function(url, callBack, option){
         path:urlInfo.path,
         headers:headers
     }, function(res){
+        req.$response = res;
+        req.getResponseCookie = function(key) {
+            if (req.$responseCookies) {
+                return req.$responseCookies[key];
+            } else if (req.$response && req.$response.headers) {
+                var cookies = require("cookie").parse(req.$response.headers["set-cookie"]);
+                cookies = cookies || {};
+                req.$responseCookies = cookies;
+                return cookies[key];
+            } else {
+                return null;
+            }
+        };
+
         var buffer = new BufferHelper();
         res.on("data", function(data){
             if (req._isTimeout == true) {
