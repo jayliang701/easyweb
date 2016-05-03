@@ -268,9 +268,9 @@ exports.delHashField = function(key, fields, callBack) {
 }
 
 exports.del = function(key, callBack) {
-    client.del(exports.join(key), function(err) {
+    client.del(exports.join(key), function(err, removedNum) {
         if (callBack) {
-            callBack(err ? false : true, err);
+            callBack(err ? false : true, err, removedNum);
         }
     });
 }

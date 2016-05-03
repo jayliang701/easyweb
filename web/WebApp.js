@@ -19,6 +19,8 @@ var COOKIE = require("cookie-parser");
 var isRunning = false;
 
 var App = EXPRESS();
+var Server = require('http').createServer(App);
+App.$server = Server;
 App.use(function(req, res, next) {
     if (req.url == '/pay_notify/alipay' && req.get('content-type') != 'application/x-www-form-urlencoded') {
         req.headers['content-type'] = 'application/x-www-form-urlencoded';
@@ -335,6 +337,7 @@ exports.start = function(setting, callBack) {
     COMMON_RESPONSE_DATA = {
         "ENV": setting.env,
         "SITE": setting.site,
+        "SITE_DOMAIN": setting.site,
         "API_GATEWAY": setting.site + "api",
         "SITE_NAME": setting.siteName,
         "RES_CDN_DOMAIN": setting.cdn.res,
@@ -417,7 +420,7 @@ exports.start = function(setting, callBack) {
     checkFolder(PATH.join(global.APP_ROOT, "server/service"), doRegisterService);
 
     var port = setting.port;
-    App.listen(port);
+    Server.listen(port);
 
     isRunning = true;
     console.log("Starting WebApp at port: " + port);
