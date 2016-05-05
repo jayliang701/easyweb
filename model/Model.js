@@ -55,25 +55,28 @@ exports.init = function(option, callBack) {
 
         cb();
     });
-
-    q.push(function(cb) {
-        db.open(option.db.host,
+    if (option.db) {
+        q.push(function(cb) {
+            db.open(option.db.host,
                 option.db.port,
                 option.db.name,
                 option.db.option,
                 function(flag, err) {
                     cb(err);
                 }, true);
-    });
-    q.push(function(cb) {
-        redis.start(option.redis.host,
-                    option.redis.port,
-                    option.redis.pass,
-                    option.redis.prefix,
-                    function(err) {
-                        cb(err);
-                    });
-    });
+        });
+    }
+    if (option.redis) {
+        q.push(function(cb) {
+            redis.start(option.redis.host,
+                option.redis.port,
+                option.redis.pass,
+                option.redis.prefix,
+                function(err) {
+                    cb(err);
+                });
+        });
+    }
     Utils.runQueueTask(q, function(err) {
         callBack(err);
     });
