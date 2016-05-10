@@ -214,6 +214,26 @@ App.checkRequestParam_int = function(val) {
     return { value:parseInt(val) };
 }
 
+App.checkRequestParam_geo = function(val) {
+    if (typeof val == "string") {
+        val = val.replace(/\s/g, '')
+        if (val.indexOf(",") > 0) {
+            val = val.split(",");
+        } else {
+            try {
+                val = JSON.parse(val);
+            } catch (err) {
+                return { value:null, err:new Error("invalid geo") };
+            }
+        }
+    }
+    val = [ Number(val[0]), Number(val[1]) ];
+    if (isNaN(Number(val[0])) || isNaN(Number(val[1]))) {
+        return { value:null, err:new Error("invalid geo") };
+    }
+    return { value:val };
+}
+
 App.checkRequestParam_qf = function(val) {
     try {
         val = Utils.convertQueryFields(val);
@@ -325,6 +345,40 @@ App.handleUserSession = function(req, res, next, error, auth) {
     }
 }
 
+function inject(target) {
+    /*
+    target.taskPool = {};
+    target.addTask = function() {
+        var id = "*";
+        var task;
+        if (typeof arguments[0] == "string") {
+            id = arguments[0];
+            task = arguments[1];
+        } else {
+            task = arguments[0];
+        }
+        var payload = this.taskPool[id];
+        if (!payload) {
+            payload = {
+                tasks:[],
+                queue:function(complete) {
+                    Utils.runQueueTask(this.tasks, complete);
+                }
+            };
+            this.taskPool[id] = payload;
+        };
+        this.taskPool[id].tasks.push(task);
+    }
+
+    target.queue = function(tasks, complete) {
+        Utils.runQueueTask(tasks, complete);
+    }
+    target.parallel = function(tasks, complete) {
+        Utils.runParallelTask(tasks, complete);
+    }
+     */
+}
+
 exports.start = function(setting, callBack) {
     if (isRunning) {
         console.log("ExpressApp is already running.");
@@ -386,7 +440,10 @@ exports.start = function(setting, callBack) {
         var router = global.requireModule(path + "/" + file);
         if (router.hasOwnProperty('getRouterMap') && router.getRouterMap) {
             var map = router.getRouterMap();
+            inject(router);
             map.forEach(function(r) {
+                //if (r.handle) inject(r.handle);
+                //if (r.postHandle) inject(r.postHandle);
                 registerRouter(r);
             });
         }
@@ -395,6 +452,7 @@ exports.start = function(setting, callBack) {
     var doRegisterService = function(path, file) {
         path = path.replace(global.APP_ROOT, "").replace("\\server\\", "").replace("/server/", "").replace("\\", "/");
         var service = global.requireModule(path + "/" + file);
+        inject(service);
         if (service.config && service.config.name && service.config.enabled == true) {
             SERVICE_MAP[service.config.name] = service;
         }

@@ -4,6 +4,35 @@ var Async = require('async');
 var ICONV = require('iconv-lite');
 var Crypto = require("crypto");
 var BufferHelper = require('bufferhelper');
+var _ = require("underscore");
+
+global.__defineGetter__('md5', function() {
+    return function(str) {
+        var buf = new Buffer(str);
+        str = buf.toString("binary");
+
+        var hash = require("crypto").createHash("md5");
+        return hash.update(str).digest("hex");
+    };
+});
+
+global.__defineGetter__('runAsQueue', function() {
+    return require('async').waterfall;
+});
+
+global.__defineGetter__('runAsParallel', function() {
+    return require('async').parallel;
+});
+
+global.__defineGetter__('isEmpty', function() {
+    return _.isEmpty;
+});
+
+global.__defineGetter__('cloneObject', function() {
+    return function(obj) {
+        return JSON.parse(JSON.stringify(obj));
+    };
+});
 
 Error.create = function(code, msg) {
     var err = new Error('code: ' + code + ', ' + msg);
@@ -806,26 +835,6 @@ exports.randomCellPhone = function(){
     var phoneNumber = "130";
     for (var i=0;i<8;i++) phoneNumber += parseInt(Math.random()*10);
     return phoneNumber;
-}
-
-exports.randomNumbers = function(length){
-    var n = "";
-    for (var i=0;i<length;i++) n += parseInt(Math.random()*10);
-    return n;
-}
-
-exports.randomString = function(length) {
-    var chars = '0123456789ABCDEFGHIJKLMNOPQRSTUVWXTZabcdefghiklmnopqrstuvwxyz'.split('');
-
-    if (! length) {
-        length = Math.floor(Math.random() * chars.length);
-    }
-
-    var str = '';
-    for (var i = 0; i < length; i++) {
-        str += chars[Math.floor(Math.random() * chars.length)];
-    }
-    return str;
 }
 
 exports.createIdCard = function (){

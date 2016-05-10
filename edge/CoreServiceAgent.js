@@ -38,7 +38,7 @@ exports.connect = function(setting, callBack) {
         };
 
         socket.on('$init', function(data) {
-            console.log("[Edge] " + data.message);
+            if (DEBUG) console.log("[Edge] " + data.message);
             socket.isWorking = true;
 
             if (connectCallBack) {
