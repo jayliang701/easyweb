@@ -478,11 +478,11 @@ exports.start = function(setting, callBack) {
     checkFolder(PATH.join(global.APP_ROOT, "server/service"), doRegisterService);
 
     var port = setting.port;
-    Server.listen(port);
-
-    isRunning = true;
-    console.log("Starting WebApp at port: " + port);
-    if (callBack) setTimeout(callBack, 500);
+    Server.listen(port, function() {
+        isRunning = true;
+        console.log("Starting WebApp at port: " + port);
+        if (callBack) callBack(App);
+    });
 
     return App;
 };

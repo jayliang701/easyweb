@@ -9,14 +9,20 @@ var Agent;
 
 var DEBUG = global.VARS.debug;
 
-exports.start = function(agent, options, callBack) {
+exports.start = function(agent, options, callBack, httpServer) {
     Agent = agent;
 
-    server = require('socket.io')();
-    server.on('connection', onClientConnected);
-    server.listen(options.port);
+    var SocketIO = require('socket.io');
+    if (httpServer) {
+        server = SocketIO(httpServer);
+        console.log("EdgeServiceProxy is working on port: " + httpServer.address().port);
+    } else {
+        server = SocketIO();
+        server.listen(options.port);
+        console.log("EdgeServiceProxy is working on port: " + options.port);
+    }
 
-    console.log("EdgeServiceProxy is working on port: " + options.port);
+    server.on('connection', onClientConnected);
 
     if (callBack) process.nextTick(callBack);
 }
