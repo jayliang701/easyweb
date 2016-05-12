@@ -14,63 +14,70 @@ var DEBUG = global.VARS.debug;
 var server;
 var server_notifyHandlers = {};
 
-var _globalInstance = {
-    __register : function(target, client) {
-        var Payload = function(name, client) {
-            var ins = this;
-            this.client = client;
-            this.name = name;
-            this.callAPI = function(method, params, callBack) {
-                Ecosystem.__callAPI(ins.name, method, params, callBack);
-            }
-            this.fire = ins.client.fire;
-            this.listen = ins.client.listen;
-            this.unListen = ins.client.unListen;
+exports.__register = function(target, client) {
+    var Payload = function(name, client) {
+        var ins = this;
+        this.client = client;
+        this.name = name;
+        this.callAPI = function(method, params, callBack) {
+            exports.__callAPI(ins.name, method, params, callBack);
         }
-        if (DEBUG) console.log("[Ecosystem] register *" + target + "*");
-        Ecosystem[target] = new Payload(target, client);
-    },
-    __callAPI : function(target, method, params, callBack) {
-        if (DEBUG) console.log("[Ecosystem] call *" + target + "* api --> " + method);
-        var URL = Setting.ecosystem.servers[target].api;
-        request(URL,
-            {
-                method: "POST",
-                body: { method:method, data:params }
-            },
-            function(err, res, body) {
-                if (DEBUG) console.log("[Ecosystem] *" + target + "* response --> ");
-                if (err) {
-                    console.error(err);
-                    if (callBack) callBack(Error.create(CODES.CORE_SERVICE_ERROR, err.toString()));
-                } else {
-                    if (DEBUG) console.log(body);
+        this.fire = ins.client.fire;
+        this.listen = ins.client.listen;
+        this.unListen = ins.client.unListen;
+    }
+    if (DEBUG) console.log("[Ecosystem] register *" + target + "*");
+    exports[target] = new Payload(target, client);
+}
 
-                    if (typeof body == "string") {
-                        try {
-                            body = JSON.parse(body);
-                        } catch (exp) {
-                            err = Error.create(CODES.CORE_SERVICE_ERROR, exp.toString());
-                            body = null;
-                        }
-                    }
-
-                    if (!err && body.code > 1) {
-                        //error response
-                        err = Error.create(body.code, body.msg);
-                        body = null;
-                    } else {
-                        body = body ? body.data : null;
-                    }
-
-                    if (callBack) callBack(err, body);
-                }
-            });
+exports.callAPI = function() {
+    if (arguments.length < 4) {
+        exports.__callAPI.apply(this, [ "core", arguments[0], arguments[1], arguments[2] ]);
+    } else {
+        exports.__callAPI.apply(this, [ arguments[0], arguments[1], arguments[2], arguments[3] ]);
     }
 }
 
+exports.__callAPI = function(target, method, params, callBack) {
+    if (DEBUG) console.log("[Ecosystem] call *" + target + "* api --> " + method);
+    var URL = Setting.ecosystem.servers[target].api;
+    request(URL,
+        {
+            method: "POST",
+            body: { method:method, data:params }
+        },
+        function(err, res, body) {
+            if (DEBUG) console.log("[Ecosystem] *" + target + "* response --> ");
+            if (err) {
+                console.error(err);
+                if (callBack) callBack(Error.create(CODES.CORE_SERVICE_ERROR, err.toString()));
+            } else {
+                if (DEBUG) console.log(body);
+
+                if (typeof body == "string") {
+                    try {
+                        body = JSON.parse(body);
+                    } catch (exp) {
+                        err = Error.create(CODES.CORE_SERVICE_ERROR, exp.toString());
+                        body = null;
+                    }
+                }
+
+                if (!err && body.code > 1) {
+                    //error response
+                    err = Error.create(body.code, body.msg);
+                    body = null;
+                } else {
+                    body = body ? body.data : null;
+                }
+
+                if (callBack) callBack(err, body);
+            }
+        });
+}
+
 global.__defineGetter__('Ecosystem', function() {
-    return _globalInstance;
+    return exports;
 });
 
 var Client = function(name) {
@@ -83,37 +90,39 @@ var Client = function(name) {
 
     this.connect = function(serverName, host) {
         ins.serverName = serverName;
-        var socket = require('socket.io-client').connect("http://" + host, { reconnect: true });
+        if (String(host).hasValue()) {
+            var socket = require('socket.io-client').connect("http://" + host, { reconnect: true });
 
-        socket.on('connect', function() {
-            ins.socketID = socket.id;
-            socket.emit("$init", { name:ins.name });
-        });
-
-        socket.on('disconnect', function() {
-            ins.isWorking = false;
-        });
-
-        socket.on('$init', function(data) {
-            console.log("[Ecosystem] -> " + data.message);
-            ins.isWorking = true;
-        });
-
-        socket.on('notify', function(data) {
-            console.log("[Ecosystem] -> (notify) " + data.event + " : " + (data.data ? JSON.stringify(data.data) : {}));
-
-            var list = ins.notifyHandlers[data.event];
-            if (!list) return;
-            list.forEach(function(handler) {
-                if (handler) handler(data.data);
+            socket.on('connect', function() {
+                ins.socketID = socket.id;
+                socket.emit("$init", { name:ins.name });
             });
-        });
+
+            socket.on('disconnect', function() {
+                ins.isWorking = false;
+            });
+
+            socket.on('$init', function(data) {
+                console.log("[Ecosystem] -> " + data.message);
+                ins.isWorking = true;
+            });
+
+            socket.on('notify', function(data) {
+                console.log("[Ecosystem] -> (notify) " + data.event + " : " + (data.data ? JSON.stringify(data.data) : {}));
+
+                var list = ins.notifyHandlers[data.event];
+                if (!list) return;
+                list.forEach(function(handler) {
+                    if (handler) handler(data.data);
+                });
+            });
+
+            ins.socket = socket;
+        }
 
         Client.clients[serverName] = ins;
 
         Ecosystem.__register(serverName, ins);
-
-        ins.socket = socket;
     }
 
     this.fire = function(event, data) {
@@ -147,24 +156,27 @@ exports.init = function(config) {
 
     /* setup server */
     var host = Setting.ecosystem.host;
-    var SocketIO = require('socket.io');
-    if (host == "*" && config.httpServer) {
-        server = SocketIO(config.httpServer);
-        console.log("[Ecosystem] server is working on port: " + config.httpServer.address().port);
-    } else if (!isNaN(Number(host))) {
-        server = SocketIO();
-        server.listen(host);
-        console.log("[Ecosystem] server is working on port: " + host);
+    if (String(host).hasValue()) {
+        var SocketIO = require('socket.io');
+        if (host == "*" && config.httpServer) {
+            server = SocketIO(config.httpServer);
+            console.log("[Ecosystem] server is working on port: " + config.httpServer.address().port);
+        } else if (!isNaN(Number(host))) {
+            server = SocketIO();
+            server.listen(host);
+            console.log("[Ecosystem] server is working on port: " + host);
+        }
     }
-
     if (server) server.on('connection', server_onClientConnected);
 
     /* setup client */
     var servers = Setting.ecosystem.servers;
-    for (var name in servers) {
-        var client = new Client(Setting.ecosystem.name);
-        var def = servers[name];
-        client.connect(name, def.socket);
+    if (servers) {
+        for (var name in servers) {
+            var client = new Client(Setting.ecosystem.name);
+            var def = servers[name];
+            client.connect(name, def.socket);
+        }
     }
 }
 

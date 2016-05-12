@@ -28,6 +28,10 @@ global.__defineGetter__('isEmpty', function() {
     return _.isEmpty;
 });
 
+global.__defineGetter__('_', function() {
+    return _;
+});
+
 global.__defineGetter__('cloneObject', function() {
     return function(obj) {
         return JSON.parse(JSON.stringify(obj));

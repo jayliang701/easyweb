@@ -403,20 +403,6 @@ exports.start = function(setting, callBack) {
     };
     WRP.config({ site:setting.site });
 
-    var SWIG = require("swig");
-    // To disable Swig's cache, do the following:
-    var SWIG_PARAMS = { };
-    if (global.VARS.viewCache) {
-        SWIG_PARAMS.cache = false;
-    }
-    SWIG.setDefaults(SWIG_PARAMS);
-    App.engine('html', SWIG.renderFile);
-
-    App.set('view engine', 'html');
-    App.set('views', PATH.join(global.APP_ROOT, "client/views"));
-    if (global.VARS.viewCache) {
-        App.set('view cache', true);
-    }
     if (global.VARS.debug) {
         App.checkRequestParam_qf = function(val) {
             try {
@@ -429,7 +415,6 @@ exports.start = function(setting, callBack) {
         }
     }
 
-    require("../utils/SwigFilter").init({ cdnUrl: setting.cdn.res });
     require("../utils/Captcha").setup(App);
 
     Session.init(setting.session);
@@ -472,10 +457,33 @@ exports.start = function(setting, callBack) {
     }
 
     //init routers
-    checkFolder(PATH.join(global.APP_ROOT, "server/router"), doRegisterRouter);
+    var routerFolder = PATH.join(global.APP_ROOT, "server/router");
+    if (FS.existsSync(routerFolder)) {
+        var SWIG = require("swig");
+        // To disable Swig's cache, do the following:
+        var SWIG_PARAMS = { };
+        if (global.VARS.viewCache) {
+            SWIG_PARAMS.cache = false;
+        }
+        SWIG.setDefaults(SWIG_PARAMS);
+        App.engine('html', SWIG.renderFile);
+
+        App.set('view engine', 'html');
+        App.set('views', PATH.join(global.APP_ROOT, "client/views"));
+        if (global.VARS.viewCache) {
+            App.set('view cache', true);
+        }
+
+        require("../utils/SwigFilter").init({ cdnUrl: setting.cdn.res });
+
+        checkFolder(routerFolder, doRegisterRouter);
+    }
 
     //init services
-    checkFolder(PATH.join(global.APP_ROOT, "server/service"), doRegisterService);
+    var serviceFolder = PATH.join(global.APP_ROOT, "server/service");
+    if (FS.existsSync(serviceFolder)) {
+        checkFolder(PATH.join(global.APP_ROOT, "server/service"), doRegisterService);
+    }
 
     var port = setting.port;
     Server.listen(port, function() {
