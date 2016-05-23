@@ -39,6 +39,7 @@ global.__defineGetter__('cloneObject', function() {
 });
 
 Error.create = function(code, msg) {
+    msg = msg ? msg.toString() : "unknown";
     var err = new Error('code: ' + code + ', ' + msg);
     err.code = code;
     err.msg = msg;

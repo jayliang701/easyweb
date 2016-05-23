@@ -220,19 +220,27 @@ function server_onClientConnected(socket) {
     });
 }
 
-exports.broadcast = function(event, data) {
+exports.broadcast = function(event, data, targets) {
     if (!server || !server.sockets || !server.sockets.connected) return;
 
     if (DEBUG) console.log("[Ecosystem] broadcast message --> " + event + " : " + (data ? JSON.stringify(data) : {}));
     var sockets = server.sockets.connected;
+    var cli;
     if (event.indexOf("@") > 0) {
         event = event.split("@");
         var target = event[0];
         event = event[1];
-        if (sockets[target]) sockets[target].emit("notify", { event:event, data:data });
+
+        cli = sockets[target];
+        if (cli && cli.info && cli.info.name) {
+            cli.emit("notify", { event:event, data:data });
+        }
     } else {
         for (var id in sockets) {
-            sockets[id].emit("notify", { event:event, data:data });
+            cli = sockets[id];
+            if (!cli || !cli.info || !cli.info.name) continue;
+            if (targets && !targets[id] && !targets[cli.info.name]) continue;
+            cli.emit("notify", { event:event, data:data });
         }
     }
 }
