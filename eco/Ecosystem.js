@@ -41,10 +41,20 @@ exports.callAPI = function() {
 exports.__callAPI = function(target, method, params, callBack) {
     if (DEBUG) console.log("[Ecosystem] call *" + target + "* api --> " + method);
     var URL = Setting.ecosystem.servers[target].api;
+    var postData = {};
+    if (params) {
+        for (var key in params) {
+            var val = params[key];
+            if (val && typeof val == "object") {
+                val = JSON.stringify(val);
+            }
+            postData[key] = val;
+        }
+    }
     request(URL,
         {
             method: "POST",
-            body: { method:method, data:params }
+            body: { method:method, data:postData }
         },
         function(err, res, body) {
             if (DEBUG) console.log("[Ecosystem] *" + target + "* response --> ");
@@ -220,27 +230,19 @@ function server_onClientConnected(socket) {
     });
 }
 
-exports.broadcast = function(event, data, targets) {
+exports.broadcast = function(event, data) {
     if (!server || !server.sockets || !server.sockets.connected) return;
 
     if (DEBUG) console.log("[Ecosystem] broadcast message --> " + event + " : " + (data ? JSON.stringify(data) : {}));
     var sockets = server.sockets.connected;
-    var cli;
     if (event.indexOf("@") > 0) {
         event = event.split("@");
         var target = event[0];
         event = event[1];
-
-        cli = sockets[target];
-        if (cli && cli.info && cli.info.name) {
-            cli.emit("notify", { event:event, data:data });
-        }
+        if (sockets[target]) sockets[target].emit("notify", { event:event, data:data });
     } else {
         for (var id in sockets) {
-            cli = sockets[id];
-            if (!cli || !cli.info || !cli.info.name) continue;
-            if (targets && !targets[id] && !targets[cli.info.name]) continue;
-            cli.emit("notify", { event:event, data:data });
+            sockets[id].emit("notify", { event:event, data:data });
         }
     }
 }
