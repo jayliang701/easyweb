@@ -13,6 +13,11 @@ var DEBUG = global.VARS.debug;
 
 var server;
 var server_notifyHandlers = {};
+var client_registerHandler = {};
+
+exports.onServeReady = function(target, handler) {
+    client_registerHandler[target] = handler;
+}
 
 exports.__register = function(target, client) {
     var Payload = function(name, client) {
@@ -28,6 +33,11 @@ exports.__register = function(target, client) {
     }
     if (DEBUG) console.log("[Ecosystem] register *" + target + "*");
     exports[target] = new Payload(target, client);
+
+    if (client_registerHandler && client_registerHandler[target]) {
+        client_registerHandler[target]();
+        delete client_registerHandler[target];
+    }
 }
 
 exports.callAPI = function() {
@@ -210,6 +220,8 @@ function server_onClientConnected(socket) {
 
     socket.on('$init', function (data) {
         this.info.name = data.name;
+        if (!server.sockets.__connected) server.sockets.__connected = {};
+        server.sockets.__connected[this.info.name] = this.id;
         this.emit("$init", { message:"Welcome to connect *" + Setting.ecosystem.name + "*. Now is " + new Date().toString() });
 
         if (DEBUG) console.log("[Ecosystem] *" + this.info.name + "* from " + this.info.ip + ":" + this.info.port + " is connected...");
@@ -226,6 +238,9 @@ function server_onClientConnected(socket) {
     });
 
     socket.on('disconnect', function () {
+        if (server.sockets.__connected && socket.info && socket.info.name) {
+            delete server.sockets.__connected[socket.info.name];
+        }
         console.log("[Ecosystem] client<" + this.info.name + "> disconnected....");
     });
 }
@@ -234,15 +249,19 @@ exports.broadcast = function(event, data) {
     if (!server || !server.sockets || !server.sockets.connected) return;
 
     if (DEBUG) console.log("[Ecosystem] broadcast message --> " + event + " : " + (data ? JSON.stringify(data) : {}));
-    var sockets = server.sockets.connected;
+    var sockets = server.sockets.__connected || {};
     if (event.indexOf("@") > 0) {
         event = event.split("@");
         var target = event[0];
         event = event[1];
-        if (sockets[target]) sockets[target].emit("notify", { event:event, data:data });
+        if (sockets[target]) {
+            var client = server.sockets.connected[sockets[target]];
+            if (client) client.emit("notify", { event:event, data:data });
+        }
     } else {
-        for (var id in sockets) {
-            sockets[id].emit("notify", { event:event, data:data });
+        for (var name in sockets) {
+            var client = server.sockets.connected[sockets[name]];
+            if (client) client.emit("notify", { event:event, data:data });
         }
     }
 }
