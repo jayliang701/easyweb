@@ -16,7 +16,8 @@ var server_notifyHandlers = {};
 var client_registerHandler = {};
 
 exports.onServeReady = function(target, handler) {
-    client_registerHandler[target] = handler;
+    if (!client_registerHandler[target]) client_registerHandler[target] = [];
+    client_registerHandler[target].push(handler);
 }
 
 exports.__register = function(target, client) {
@@ -35,7 +36,9 @@ exports.__register = function(target, client) {
     exports[target] = new Payload(target, client);
 
     if (client_registerHandler && client_registerHandler[target]) {
-        client_registerHandler[target]();
+        client_registerHandler[target].forEach(function(handler) {
+            if (handler) handler();
+        });
         delete client_registerHandler[target];
     }
 }
