@@ -17,17 +17,16 @@ function formatKey(id, token) {
 
 exports.save = function(user, callBack) {
 
-    var token = Utils.randomString(16);
     var tokentimestamp = Date.now();
 
     var sess = {};
     sess.userid = user.id;
-    sess.token = token;
+    sess.token = user.token || Utils.randomString(16);
     sess.username = user.username;
     sess.tokentimestamp = tokentimestamp;
     sess.type = user.type;
 
-    var key = formatKey(user.id, token);
+    var key = formatKey(sess.userid, sess.token);
 
     Redis.setHashMulti(key, sess, function(redisRes, redisErr) {
         if (redisRes) {
