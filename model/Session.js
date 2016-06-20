@@ -22,18 +22,18 @@ exports.save = function(user, callBack) {
     var sess = {};
     sess.userid = user.id;
     sess.token = user.token || Utils.randomString(16);
-    sess.username = user.username;
     sess.tokentimestamp = tokentimestamp;
     sess.type = user.type;
+    sess.extra = user.extra;
 
     var key = formatKey(sess.userid, sess.token);
 
     Redis.setHashMulti(key, sess, function(redisRes, redisErr) {
         if (redisRes) {
             Memory.save(key, sess, config.cacheExpireTime, null);
-            callBack(sess);
+            if (callBack) callBack(sess);
         } else {
-            callBack(null, redisErr);
+            if (callBack) callBack(null, redisErr);
         }
     }, config.tokenExpireTime);
 }
