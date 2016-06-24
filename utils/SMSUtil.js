@@ -73,16 +73,6 @@ function sendMessage(phone, templateKey, params, callBack, enforce) {
         if (callBack) callBack(false, err);
         return;
     }
-    if (SIMULATION) {
-        setTimeout(function() {
-            console.log("Simulate SMS send ----> ");
-            var tpl = TemplateLib.useTemplate("sms", templateKey, params);
-            console.log(tpl.content);
-
-            if (callBack) callBack(true);
-        }, 50);
-        return;
-    }
 
     if (enforce) {
         send(phone, templateKey, params, callBack);
@@ -91,6 +81,18 @@ function sendMessage(phone, templateKey, params, callBack, enforce) {
             if (err) {
                 if (callBack) callBack(false, err);
             } else {
+                if (SIMULATION) {
+                    setTimeout(function() {
+                        console.log("Simulate SMS send ----> ");
+                        var tpl = TemplateLib.useTemplate("sms", templateKey, params);
+                        console.log(tpl.content);
+
+                        logAfterSend(phone, redisLog);
+                        if (callBack) callBack(true);
+                    }, 50);
+                    return;
+                }
+
                 send(phone, templateKey, params, function(flag, err) {
                     if (flag) logAfterSend(phone, redisLog);
                     if (callBack) callBack(flag, err);
