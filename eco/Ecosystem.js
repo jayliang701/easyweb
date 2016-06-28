@@ -56,16 +56,13 @@ exports.__callAPI = function(target, method, params, callBack) {
     var URL = Setting.ecosystem.servers[target].api;
     var postData = {};
     if (params) {
-        for (var key in params) {
-            var val = params[key];
-            if (val && typeof val == "object") {
-                val = JSON.stringify(val);
-            }
-            postData[key] = val;
-        }
+        postData = params;
     }
     request(URL,
         {
+            headers: {
+                'Content-Type': 'application/json'
+            },
             method: "POST",
             body: { method:method, data:postData }
         },
@@ -222,23 +219,15 @@ exports.broadcast = function(event, data, callBack) {
 exports.fire = function(target, event, data, callBack) {
     //if (DEBUG) console.log("[Ecosystem] fire message to *" + target + "* --> " + event + " : " + (data ? JSON.stringify(data) : {}));
 
-    var postData = {};
-    if (data) {
-        for (var key in data) {
-            var val = data[key];
-            if (val && typeof val == "object") {
-                val = JSON.stringify(val);
-            }
-            postData[key] = val;
-        }
-    }
-
     //var startTime = Date.now();
     var url = Setting.ecosystem.servers[target]["message"] + "/message";
     request(url,
         {
+            headers: {
+                'Content-Type': 'application/json'
+            },
             method: "POST",
-            body: { event:event, data:postData, client:Setting.ecosystem.name }
+            body: { event:event, data:data, client:Setting.ecosystem.name }
         },
         function(err, res, body) {
             if (!callBack) return;
@@ -255,15 +244,6 @@ exports.fire = function(target, event, data, callBack) {
                         body = null;
                     }
                 }
-
-                if (!err && body.code > 1) {
-                    //error response
-                    err = Error.create(body.code, body.msg);
-                    body = null;
-                } else {
-                    body = body ? body.data : null;
-                }
-
                 callBack(err, body);
             }
         });

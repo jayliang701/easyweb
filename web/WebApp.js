@@ -165,17 +165,18 @@ App.checkRequestParam_object = function(val) {
 }
 
 App.checkRequestParam_array = function(val) {
-    if (typeof val != "object" && typeof val != "string") return { value:null, err:new Error("invalid Array") };
-    try {
-        val = (val == "[]") ? [] : JSON.parse(val);
-    } catch (err) {
-        console.error('JSON.parse error ----> ' + val);
-        return { value:null, err:err };
-    }
     if (UTIL.isArray(val)) {
         return { value:val };
     } else {
-        return { value:null, err:new Error("invalid Array") };
+        if (typeof val != "object" && typeof val != "string") return { value:null, err:new Error("invalid Array") };
+
+        try {
+            val = (val == "[]") ? [] : JSON.parse(val);
+        } catch (err) {
+            console.error('JSON.parse error ----> ' + val);
+            return { value:null, err:err };
+        }
+        return { value:val };
     }
 }
 
