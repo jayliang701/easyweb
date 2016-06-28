@@ -52,7 +52,7 @@ exports.callAPI = function() {
 }
 
 exports.__callAPI = function(target, method, params, callBack) {
-    if (DEBUG) console.log("[Ecosystem] call *" + target + "* api --> " + method);
+    //if (DEBUG) console.log("[Ecosystem] call *" + target + "* api --> " + method);
     var URL = Setting.ecosystem.servers[target].api;
     var postData = {};
     if (params) {
@@ -70,12 +70,12 @@ exports.__callAPI = function(target, method, params, callBack) {
             body: { method:method, data:postData }
         },
         function(err, res, body) {
-            if (DEBUG) console.log("[Ecosystem] *" + target + "* response --> ");
+            //if (DEBUG) console.log("[Ecosystem] *" + target + "* response --> ");
             if (err) {
                 console.error(err);
                 if (callBack) callBack(Error.create(CODES.CORE_SERVICE_ERROR, err.toString()));
             } else {
-                if (DEBUG) console.log(body);
+                //if (DEBUG) console.log(body);
 
                 if (typeof body == "string") {
                     try {
@@ -131,7 +131,7 @@ var Client = function(name) {
             });
 
             socket.on('notify', function(data) {
-                console.log("[Ecosystem] -> (notify) " + data.event + " : " + (data.data ? JSON.stringify(data.data) : {}));
+                //console.log("[Ecosystem] -> (notify) " + data.event + " : " + (data.data ? JSON.stringify(data.data) : {}));
 
                 var list = ins.notifyHandlers[data.event];
                 if (!list) return;
@@ -231,7 +231,7 @@ function server_onClientConnected(socket) {
     });
 
     socket.on('notify', function (data) {
-        console.log("[Ecosystem] -> (*notify) " + data.event + " : " + (data.data ? JSON.stringify(data.data) : {}));
+        //console.log("[Ecosystem] -> (*notify) " + data.event + " : " + (data.data ? JSON.stringify(data.data) : {}));
 
         var list = server_notifyHandlers[this.info.name + "@" + data.event];
         if (!list) return;
@@ -251,7 +251,7 @@ function server_onClientConnected(socket) {
 exports.broadcast = function(event, data) {
     if (!server || !server.sockets || !server.sockets.connected) return;
 
-    if (DEBUG) console.log("[Ecosystem] broadcast message --> " + event + " : " + (data ? JSON.stringify(data) : {}));
+    //if (DEBUG) console.log("[Ecosystem] broadcast message --> " + event + " : " + (data ? JSON.stringify(data) : {}));
     var sockets = server.sockets.__connected || {};
     if (event.indexOf("@") > 0) {
         event = event.split("@");
