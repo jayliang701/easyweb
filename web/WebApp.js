@@ -19,6 +19,7 @@ var COOKIE = require("cookie-parser");
 var isRunning = false;
 
 var App = EXPRESS();
+App.maxSockets = Infinity;
 var Server = require('http').createServer(App);
 App.$server = Server;
 App.use(function(req, res, next) {

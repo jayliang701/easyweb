@@ -1,4 +1,5 @@
 var HTTP = require('http');
+HTTP.globalAgent.maxSockets = Infinity;
 var URL = require('url');
 var Async = require('async');
 var ICONV = require('iconv-lite');
