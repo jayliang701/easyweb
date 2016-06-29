@@ -1,6 +1,6 @@
 {
   "name": "magicfish_web",
-  "version": "1.2.0",
+  "version": "1.2.1",
   "description": "None",
   "main": "index.js",
   "scripts": {
@@ -8,12 +8,14 @@
   },
   "repository": {
     "type": "git",
-    "url": "https://github.com/jayliang701/easyweb.git"
+    "url": "git+https://github.com/jayliang701/easyweb.git"
   },
   "keywords": [
     "web"
   ],
-  "author": "Jay Liang",
+  "author": {
+    "name": "Jay Liang"
+  },
   "license": "MIT",
   "bugs": {
     "url": "https://github.com/jayliang701/easyweb/issues"
@@ -44,5 +46,36 @@
     "socket.io-client": "^1.4.5",
     "swig": "^1.4.2",
     "underscore": "^1.8.3"
-  }
+  },
+  "gitHead": "d551c68240781fb2f3cf93ce8488db1f13d34792",
+  "_id": "magicfish_web@1.2.0",
+  "_shasum": "10e3839ae92d8a37e1829775978b6d773fbc1d7f",
+  "_from": "magicfish_web@latest",
+  "_npmVersion": "2.14.12",
+  "_nodeVersion": "4.2.6",
+  "_npmUser": {
+    "name": "magicfish",
+    "email": "jay.liang@magicfish.cn"
+  },
+  "dist": {
+    "shasum": "10e3839ae92d8a37e1829775978b6d773fbc1d7f",
+    "size": 38531,
+    "noattachment": false,
+    "tarball": "http://registry.npm.taobao.org/magicfish_web/download/magicfish_web-1.2.0.tgz"
+  },
+  "maintainers": [
+    {
+      "name": "magicfish",
+      "email": "jay.liang@magicfish.cn"
+    }
+  ],
+  "_npmOperationalInternal": {
+    "host": "packages-16-east.internal.npmjs.com",
+    "tmp": "tmp/magicfish_web-1.2.0.tgz_1467135718559_0.2441836663056165"
+  },
+  "directories": {},
+  "publish_time": 1467135721053,
+  "_cnpm_publish_time": 1467135721053,
+  "_resolved": "https://registry.npm.taobao.org/magicfish_web/download/magicfish_web-1.2.0.tgz",
+  "readme": "ERROR: No README data found!"
 }

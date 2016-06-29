@@ -7,12 +7,25 @@ var Utils = require("../utils/Utils");
 
 var config;
 
+var payload = {};
+
 exports.init = function(params) {
     config = params;
-}
-
-function formatKey(id, token) {
-    return "user_sess_" + id + "_" + token;
+    if (config.onePointEnter) {
+        payload.formatKey = function(id, token) {
+            return "user_sess_" + id;
+        }
+        payload.checkSess = function(id, token, sess) {
+            return sess.userid == id && sess.token == token;
+        }
+    } else {
+        payload.formatKey = function(id, token) {
+            return "user_sess_" + id + "_" + token;
+        }
+        payload.checkSess = function(id, token, sess) {
+            return true;
+        }
+    }
 }
 
 exports.save = function(user, callBack) {
@@ -26,7 +39,7 @@ exports.save = function(user, callBack) {
     sess.type = user.type;
     sess.extra = user.extra;
 
-    var key = formatKey(sess.userid, sess.token);
+    var key = payload.formatKey(sess.userid, sess.token);
 
     Redis.setHashMulti(key, sess, function(redisRes, redisErr) {
         if (redisRes) {
@@ -40,7 +53,9 @@ exports.save = function(user, callBack) {
 
 exports.remove = function(user, callBack) {
     var id = user.id ? user.id : user.userid;
-    Redis.del(formatKey(id, user.token), function(redisRes, redisErr) {
+    var key = payload.formatKey(id, user.token);
+    Memory.remove(key);
+    Redis.del(key, function(redisRes, redisErr) {
         if (redisRes) {
             if (callBack) callBack(true);
         } else {
@@ -51,15 +66,21 @@ exports.remove = function(user, callBack) {
 
 exports.refresh = function(user) {
     var id = user.id ? user.id : user.userid;
-    Redis.setExpireTime(formatKey(id, user.token), config.tokenExpireTime);
+    var key = payload.formatKey(id, user.token);
+    Memory.setExpireTime(key, config.tokenExpireTime);
+    Redis.setExpireTime(key, config.tokenExpireTime);
 }
 
 exports.check = function(id, token, callBack) {
 
-    var key = formatKey(id, token);
+    var key = payload.formatKey(id, token);
     var cache = Memory.read(key);
     if (cache) {
-        callBack(1, cache);
+        if (payload.checkSess(id, token, cache)) {
+            callBack(1, cache);
+        } else {
+            callBack(0);
+        }
         return;
     }
 
@@ -68,7 +89,11 @@ exports.check = function(id, token, callBack) {
             callBack(-1, null, err);
         } else {
             if (sess) {
-                callBack(1, sess);
+                if (payload.checkSess(id, token, sess)) {
+                    callBack(1, sess);
+                } else {
+                    callBack(0);
+                }
             } else {
                 callBack(0);
             }
