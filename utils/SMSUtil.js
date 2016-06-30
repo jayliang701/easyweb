@@ -9,7 +9,7 @@ var Request = require("min-request");
 
 var config;
 var DEBUG = global.VARS.debug;
-var SIMULATION = true;
+var SIMULATION = false;
 
 exports.init = function(setting) {
     config = setting;
