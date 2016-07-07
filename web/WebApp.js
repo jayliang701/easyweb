@@ -464,17 +464,14 @@ exports.start = function(setting, callBack) {
         var SWIG = require("swig");
         // To disable Swig's cache, do the following:
         var SWIG_PARAMS = { };
-        if (global.VARS.viewCache) {
-            SWIG_PARAMS.cache = false;
-        }
+        var viewCache = String(global.VARS.viewCache) == true;
+        SWIG_PARAMS.cache = viewCache;
         SWIG.setDefaults(SWIG_PARAMS);
         App.engine('html', SWIG.renderFile);
 
         App.set('view engine', 'html');
         App.set('views', PATH.join(global.APP_ROOT, "client/views"));
-        if (global.VARS.viewCache) {
-            App.set('view cache', true);
-        }
+        App.set('view cache', viewCache);
 
         require("../utils/SwigFilter").init({ cdnUrl: setting.cdn.res });
 

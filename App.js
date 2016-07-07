@@ -24,7 +24,6 @@ function App() {
         }
     }
     if (!global.VARS.env) global.VARS.env = "localdev";
-    if (!global.VARS.viewCache) global.VARS.viewCache = true;
 
     if (!global.APP_ROOT) global.APP_ROOT = PATH.parse(process.mainModule.filename).dir;
 
