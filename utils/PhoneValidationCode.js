@@ -14,6 +14,7 @@ var SIMULATION = true;
 
 exports.init = function(setting) {
     config = setting;
+    SIMULATION = global.VARS.debug;
 }
 
 exports.remove = function(phone, type, callBack) {
@@ -31,11 +32,6 @@ exports.use = function(phone, type, code, callBack) {
         if (callBack) callBack(false, CODES.INVALID_VALIDATION_CODE, "code should not be undefined or empty");
         return;
     }
-    //模拟
-    if (SIMULATION && code == "123456") {
-        if (callBack) callBack(true);
-        return;
-    }
 
     Redis.get(REDIS_KEY + type + "_" + phone, function(redisRes, redisErr) {
         if (redisErr) {
@@ -45,34 +41,54 @@ exports.use = function(phone, type, code, callBack) {
                 exports.remove(phone, type);
                 if (callBack) callBack(true);
             } else {
+                //模拟
+                if (SIMULATION && code == "123456") {
+                    if (callBack) callBack(true);
+                    return;
+                }
                 if (callBack) callBack(false, CODES.INVALID_VALIDATION_CODE, "no such validation code<" + type + " : " + phone + ">");
             }
         }
     });
 }
 
-exports.send = function(type, phone, callBack, len) {
-    //模拟
-    if (SIMULATION) {
-        if (callBack) callBack({ type:type, phone:phone, code:"123456" });
-        return;
-    }
-
-    var code = Utils.randomNumber(isNaN(len) || len == 0 ? DEFAULT_CODE_LEN : parseInt(len));
-
-    Redis.set(REDIS_KEY + type + "_" + phone, code, function(redisRes, redisErr) {
+exports.check = function(phone, type, code, callBack) {
+    Redis.get(REDIS_KEY + type + "_" + phone, function(redisRes, redisErr) {
         if (redisErr) {
-            if (callBack) callBack(null, CODES.REDIS_ERROR, redisErr);
+            callBack(false, CODES.REDIS_ERROR, redisErr);
         } else {
-            SMSUtil.sendMessage(phone, type, { "code":code }, function(flag, err) {
-                if (flag) {
-                    if (callBack) callBack({ type:type, phone:phone, code:code });
-                } else {
-                    if (err) console.error("send sms error ==> " + err.toString());
-                    exports.remove(phone, type);
-                    if (callBack) callBack(null, CODES.SMS_SERVICE_ERROR, err);
+            if (redisRes && redisRes == code) {
+                callBack(true);
+            } else {
+                if (SIMULATION && code == "123456") {
+                    callBack(true);
+                    return;
                 }
-            });
+                callBack(false, CODES.INVALID_VALIDATION_CODE, "invalid code");
+            }
         }
-    }, config.validationCodeExpireTime);
+    });
+}
+
+exports.send = function(phone, type, callBack, len) {
+    var code = Utils.randomNumber(isNaN(len) || len == 0 ? DEFAULT_CODE_LEN : parseInt(len));
+    SMSUtil.sendMessage(phone, type, { "code":code }, function(flag, err) {
+        if (flag) {
+
+            Redis.set(REDIS_KEY + type + "_" + phone, code, function(redisRes, redisErr) {
+                if (redisErr) {
+                    if (callBack) callBack(null, CODES.REDIS_ERROR, redisErr);
+                } else {
+
+                    console.log("Sent phone validation code --> " + phone + ": " + code + " [" + type + "]");
+
+                    if (callBack) callBack({ type:type, phone:phone, code:code });
+                }
+            }, config.validationCodeExpireTime);
+
+        } else {
+            if (err) console.error("send sms error ==> " + err.toString());
+            if (callBack) callBack(null, CODES.SMS_SERVICE_ERROR, err);
+        }
+    });
 }

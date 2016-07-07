@@ -8,11 +8,13 @@ var Redis = require("../model/Redis.js");
 var Request = require("min-request");
 
 var config;
-var DEBUG = global.VARS.debug;
+var DEBUG = true;
 var SIMULATION = false;
 
 exports.init = function(setting) {
     config = setting;
+    DEBUG = global.VARS.debug;
+    SIMULATION = global.VARS.debug;
 }
 
 function logAfterSend(phone, redisObj) {
@@ -69,7 +71,6 @@ function checkIsAllowToSend(phone, callBack) {
 function sendMessage(phone, templateKey, params, callBack, enforce) {
     if (!String(phone).hasValue() || !Utils.cnCellPhoneCheck(phone)) {
         var err = new Error("invalid cn cell phone");
-        if (DEBUG) console.error(err.toString());
         if (callBack) callBack(false, err);
         return;
     }
