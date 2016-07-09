@@ -22,18 +22,21 @@ var App = EXPRESS();
 App.maxSockets = Infinity;
 var Server = require('http').createServer(App);
 App.$server = Server;
+/** hack for alipay notification
 App.use(function(req, res, next) {
     if (req.url == '/pay_notify/alipay' && req.get('content-type') != 'application/x-www-form-urlencoded') {
         req.headers['content-type'] = 'application/x-www-form-urlencoded';
     }
     next();
 });
+ */
+WRP.register(App, "head");
 App.use(BODY_PARSER.urlencoded({ extended: true }));
 App.use(BODY_PARSER.json());
 App.use(METHOD_OVERRIDE());
 App.use(COOKIE());
 App.use(EXPRESS.static(PATH.join(global.APP_ROOT, "client/res")));
-App.use(WRP.handle);
+WRP.register(App, "middle");
 
 var SERVICE_MAP = { };
 

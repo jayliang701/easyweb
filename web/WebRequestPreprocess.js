@@ -8,11 +8,26 @@ var CODES = require("./../ErrorCodes");
 
 var options;
 
+var injects = { head:[], middle:[ preprocess ] };
+
 exports.config = function(opt) {
     options = opt;
 }
 
-exports.handle = function(req, res, next) {
+exports.inject = function(type, handler) {
+    injects[type].push(handler);
+}
+
+exports.register = function(app, type) {
+    var handlers = injects[type];
+    if (handlers && handlers.length > 0) {
+        handlers.forEach(function(handler) {
+            app.use(handler);
+        });
+    }
+}
+
+function preprocess(req, res, next) {
     req._res = res;
     res._req = req;
     req._clientIP = Utils.parseIP(req);
