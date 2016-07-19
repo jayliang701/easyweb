@@ -89,7 +89,7 @@ function preprocess(req, res, next) {
             }
         }
         this.writeHead(200, responseHeader);
-        this.end(binary);
+        this.end(data);
     };
 
 
