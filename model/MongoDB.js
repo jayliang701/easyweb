@@ -18,7 +18,6 @@ var dbOption = {
     }
 };
 
-var mongodb = require("mongodb");
 
 var dbMap = {};
 
@@ -26,39 +25,49 @@ var defaultDB;
 
 function open(host, port, name, option, callBack, asDefault) {
     var auth = option ? option.auth : null;
-    var newDB = new mongodb.Db(name, new mongodb.Server(host, port, option), dbOption);
-    dbMap[name] = newDB;
-    newDB.open(function(err, db){
-        if (err) {
-            console.error(err);
-            delete dbMap[name];
-            if (callBack) {
-                callBack(false, err);
-            }
-        } else {
 
-            var done = function() {
-                if (asDefault) {
-                    defaultDB = newDB;
-                }
-                //console.log(defaultDB);
-                console.log("Database connection[" + name + "] init completed. ");
-                if (callBack) {
-                    callBack(true);
-                }
-            }
+    var driver = option && option.driver ? option.driver : "native";
+    var poolSize = option && option.server && option.server.poolSize ? option.server.poolSize : 'default';
 
-            if (auth) {
-                db.authenticate(auth[0], auth[1], function(err, res) {
-                    console.log("db.authenticate ----> ");
-                    console.log(arguments);
-                    done();
-                });
-            } else {
-                done();
-            }
+    var done = function() {
+        //console.log(defaultDB);
+        console.log("Database connection[" + name + "] init completed.   [driver: " + driver + ", poolSize: " + poolSize + "]");
+        if (callBack) {
+            callBack(true);
         }
-    });
+    }
+
+    var newDB;
+    if (option && option.driver == "mongoose") {
+        var mongoose = require("mongoose");
+        newDB = mongoose.createConnection("mongodb://" + host + ":" + port + "/" + name, option);
+        process.nextTick(done);
+    } else {
+        var mongodb = require("mongodb");
+        newDB = new mongodb.Db(name, new mongodb.Server(host, port, option), dbOption);
+        newDB.open(function(err, db){
+            if (err) {
+                console.error(err);
+                delete dbMap[name];
+                if (callBack) {
+                    callBack(false, err);
+                }
+            } else {
+
+                if (auth) {
+                    db.authenticate(auth[0], auth[1], function(err, res) {
+                        console.log("db.authenticate ----> ");
+                        console.log(arguments);
+                        done();
+                    });
+                } else {
+                    done();
+                }
+            }
+        });
+    }
+    dbMap[name] = newDB;
+    if (asDefault) defaultDB = newDB;
     return newDB;
 }
 

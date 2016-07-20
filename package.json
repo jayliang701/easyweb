@@ -1,6 +1,6 @@
 {
   "name": "magicfish_web",
-  "version": "1.2.4",
+  "version": "1.2.5",
   "description": "None",
   "main": "index.js",
   "scripts": {
@@ -39,6 +39,7 @@
     "method-override": "^2.3.5",
     "min-request": "^1.4.1",
     "mongodb": "^2.1.16",
+    "mongoose": "^4.4.14",
     "morgan": "^1.7.0",
     "redis": "^2.5.3",
     "request": "^2.72.0",
