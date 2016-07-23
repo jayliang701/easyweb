@@ -449,12 +449,15 @@ exports.start = function(setting, callBack) {
     }
 
     var checkFolder = function(path, handler) {
-        var files = FS.readdirSync(path);
+        var files = [];
+        try {
+            files = FS.readdirSync(path);
+        } catch (exp) {
+            return;
+        }
         files.forEach(function(rf) {
-            if (rf.indexOf(".") > 0) {
-                if (rf.indexOf(".js") > 0) {
-                    handler(path, rf);
-                }
+            if (rf.substr(rf.length - 3, 3) == ".js") {
+                handler(path, rf);
             } else {
                 checkFolder(PATH.join(path, rf), handler);
             }
