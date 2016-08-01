@@ -283,6 +283,10 @@ exports.multi = function(tasks, callBack) {
     });
 }
 
+exports.multiTask = function() {
+    return client.multi();
+}
+
 exports.do = function (cmd, args, callBack) {
     var done = function(err, reply) {
         if (err) {

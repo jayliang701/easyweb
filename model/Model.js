@@ -61,7 +61,7 @@ exports.init = function(option, callBack) {
                 option.db.port,
                 option.db.name,
                 option.db.option,
-                function(flag, err) {
+                function(err) {
                     cb(err);
                 }, true);
         });

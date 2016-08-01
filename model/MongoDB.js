@@ -29,21 +29,30 @@ function open(host, port, name, option, callBack, asDefault) {
     var driver = option && option.driver ? option.driver : "native";
     var poolSize = option && option.server && option.server.poolSize ? option.server.poolSize : 'default';
 
-    var done = function() {
-        //console.log(defaultDB);
-        console.log("Database connection[" + name + "] init completed.   [driver: " + driver + ", poolSize: " + poolSize + "]");
+    var newDB;
+    var done = function(err) {
+        if (newDB) {
+            dbMap[name] = newDB;
+            if (asDefault) defaultDB = newDB;
+            console.log("Database connection[" + name + "] init completed.   [driver: " + driver + ", poolSize: " + poolSize + "]");
+        }
+
         if (callBack) {
-            callBack(true);
+            callBack(err, newDB);
         }
     }
 
-    var newDB;
     if (option && option.driver == "mongoose") {
         var mongoose = require("mongoose");
         newDB = mongoose.createConnection("mongodb://" + host + ":" + port + "/" + name, option);
         process.nextTick(done);
     } else {
-        var mongodb = require("mongodb");
+        var MongoClient = require("mongodb").MongoClient;
+        MongoClient.connect("mongodb://" + host + ":" + port + "/" + name, option, function(err, db) {
+            if (db) newDB = db;
+            done(err);
+        });
+        /*
         newDB = new mongodb.Db(name, new mongodb.Server(host, port, option), dbOption);
         newDB.open(function(err, db){
             if (err) {
@@ -65,10 +74,9 @@ function open(host, port, name, option, callBack, asDefault) {
                 }
             }
         });
+        */
     }
-    dbMap[name] = newDB;
-    if (asDefault) defaultDB = newDB;
-    return newDB;
+    //return newDB;
 }
 
 function getDBByName(dbName) {
