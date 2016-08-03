@@ -530,6 +530,7 @@ exports.parseIP = function (req) {
             req.connection.remoteAddress ||
             req.socket.remoteAddress ||
             req.connection.socket.remoteAddress;
+        if (ip == "::1" || ip == "127.0.0.1") ip = "0.0.0.0";
         return ip;
     } catch (err) {
         return "unknown"
