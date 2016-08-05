@@ -138,14 +138,14 @@ App.post("/api", function (req, res) {
             }
         }, function(err) {
             res.sayError(CODES.SERVER_ERROR, err);
-        }, auth);
+        }, auth, security);
     } else {
         service[method](req, res, params);
     }
 });
 
 App.checkRequestParam_string = function(val, allowEmpty) {
-    if (allowEmpty && val == "") return { value:val };
+    if (allowEmpty && (!val || val == "")) return { value:val };
     if (!val || val == "") {
         return { value:null, err:new Error("empty string") };
     }
