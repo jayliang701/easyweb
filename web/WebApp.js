@@ -304,7 +304,7 @@ function registerRouter(r) {
         }, function(err) {
             console.error("handle user session error ==> " + err.toString());
             redirectToLogin(req, res, r.loginPage);
-        }, req.cookies);
+        }, req.cookies, r);
     });
 }
 
