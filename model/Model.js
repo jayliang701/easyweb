@@ -28,28 +28,30 @@ exports.init = function(option, callBack) {
 
     q.push(function(cb) {
 
-        var general = CACHE_CONFIG.general;
-        for (var key in general) {
-            var def = general[key];
-            if (def.hasOwnProperty("expired.1")) {
-                CACHE_POOL["1"].registerExpiredTime(key, def["expired.1"] * 1000);
-                if (def.level == 0) {
-                    SYNC_UP_LEVEL_CACHE[key] = true;
+        for (var group in CACHE_CONFIG) {
+            var defs = CACHE_CONFIG[group];
+            for (var key in defs) {
+                var def = defs[key];
+                if (def.hasOwnProperty("expired.1")) {
+                    CACHE_POOL["1"].registerExpiredTime(key, def["expired.1"] * 1000);
+                    if (def.level == 0) {
+                        SYNC_UP_LEVEL_CACHE[key] = true;
+                    }
                 }
-            }
-            if (def.hasOwnProperty("expired.2")) {
-                CACHE_POOL["2"].registerExpiredTime(key, def["expired.2"]);
-            }
-            if (def.level == 1) {
-                SAVE_LEVEL_MAPPING[key] = "1";
-            } else {
-                SAVE_LEVEL_MAPPING[key] = "2";
-            }
+                if (def.hasOwnProperty("expired.2")) {
+                    CACHE_POOL["2"].registerExpiredTime(key, def["expired.2"]);
+                }
+                if (def.level == 1) {
+                    SAVE_LEVEL_MAPPING[key] = "1";
+                } else {
+                    SAVE_LEVEL_MAPPING[key] = "2";
+                }
 
-            if (def.level == 2) {
-                READ_LEVEL_MAPPING[key] = "2";
-            } else {
-                READ_LEVEL_MAPPING[key] = "1";
+                if (def.level == 2) {
+                    READ_LEVEL_MAPPING[key] = "2";
+                } else {
+                    READ_LEVEL_MAPPING[key] = "1";
+                }
             }
         }
 

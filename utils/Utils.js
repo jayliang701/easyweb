@@ -868,3 +868,28 @@ exports.createIdCard = function (){
 
     return id_number;
 }
+
+function deg2rad(deg) {
+    return deg * (Math.PI / 180);
+}
+
+exports.calDistanceInMeters = function(p1, p2) {
+    p1 = arguments.length == 2 ? arguments[0] : [ arguments[0], arguments[1] ];
+    p2 = arguments.length == 2 ? arguments[1] : [ arguments[2], arguments[3] ];
+
+    var x1 = p1[0];
+    var y1 = p1[1];
+    var x2 = p2[0];
+    var y2 = p2[1];
+
+    var R = 6371; // Radius of the earth in km
+    var dLat = deg2rad(x2 - x1);     // deg2rad below
+    var dLon = deg2rad(y2 - y1);
+    var a =
+        Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+        Math.cos(deg2rad(x1)) * Math.cos(deg2rad(x2)) *
+        Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    var c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    var d = R * c; // Distance in km
+    return Math.floor(d * 1000);
+}
