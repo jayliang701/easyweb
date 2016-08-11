@@ -267,6 +267,32 @@ exports.delHashField = function(key, fields, callBack) {
     }));
 }
 
+exports.findKeysAndDel = function(keyword, callBack) {
+    client.keys(keyword, function(err, keys) {
+        if (err) {
+            if (callBack) callBack(err, 0);
+        } else {
+            keys = keys || [];
+            if (keys.length <= 0) {
+                if (callBack) callBack(null, 0);
+                return;
+            }
+
+            var tasks = [];
+            keys.forEach(function(key) {
+                tasks.push([ "del", key ]);
+            });
+            exports.multi(tasks, function(flag, err) {
+                if (err) {
+                    if (callBack) callBack(err, 0);
+                } else {
+                    if (callBack) callBack(null, tasks.length);
+                }
+            });
+        }
+    });
+}
+
 exports.del = function(key, callBack) {
     client.del(exports.join(key), function(err, removedNum) {
         if (callBack) {
@@ -298,6 +324,14 @@ exports.do = function (cmd, args, callBack) {
     }
     var func = client[cmd];
     func.apply(client, args.concat([ done ]));
+}
+
+exports.exec = function (method) {
+    if (method == "exec") throw new Error("illegal method to be executed");
+    var func = exports[method];
+    var args = Array.prototype.slice.call(arguments, 0);
+    args.shift();
+    func.apply(exports, args);
 }
 
 exports.subscribe = function (channel, callBack) {
