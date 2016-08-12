@@ -210,9 +210,9 @@ exports.sortArrayByNumber = function(arr, field, order, func) {
     arr.sort(function(value1, value2){
         if (func) func(value1, value2);
         if(value1[field] > value2[field]){
-            return order * -1;
-        } else if(value1[field] < value2[field]){
             return order * 1;
+        } else if(value1[field] < value2[field]){
+            return order * -1;
         } else{
             return 0;
         }
