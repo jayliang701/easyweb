@@ -12,20 +12,24 @@ var CODES = require("./../ErrorCodes");
 var server = require("../net/PureHttp").createServer();
 var JsonAPIMiddleware = require("../net/PureHttp").JsonAPIMiddleware;
 
+var DEBUG = global.VARS && global.VARS.debug;
+
 function CustomMiddleware() {
     var jam = new JsonAPIMiddleware();
     this.preprocess = function(req, res) {
+
+        res.setHeader("Access-Control-Allow-Headers", "IdentifyID, X-Requested-With, X-HTTP-Method-Override, Content-Type, Content-Length, Connection, Origin, Accept, Authorization, userid, token, tokentimestamp");
 
         req._res = res;
         res._req = req;
         req._clientIP = Utils.parseIP(req);
 
-        var identify_id = req.headers["identify_id"];
+        var identify_id = req.headers["IdentifyID"];
         if (!identify_id) {
             identify_id = Utils.md5(req.headers["user-agent"] + req._clientIP + Date.now());
-            res.setHeader("identify_id", identify_id);
+            res.setHeader("IdentifyID", identify_id);
 
-            console.log("new identify_id --> " + identify_id);
+            //console.log("new identify_id --> " + identify_id);
         }
         req._identifyID = identify_id;
 
@@ -38,6 +42,27 @@ function CustomMiddleware() {
 }
 
 server.middleware(new CustomMiddleware());
+
+if (DEBUG) {
+    //show api debug page
+
+    var DEBUG_SERVICE_LIST = [];
+
+    server.get("/apidoc", function(req, res, params) {
+        var callback = require("url").parse(req.url, true).query.callback;
+        res.end(callback + "(" + JSON.stringify(DEBUG_SERVICE_LIST) + ")");
+    });
+
+    server.get("/debug", function(req, res, params) {
+        var html = FS.readFileSync(PATH.join(global.APP_ROOT, "client/views/debug.html"), {encoding:"utf8"});
+        html = html.replace(/\{\{RES_CDN_DOMAIN\}\}/mg, APP_SETTING.cdn.res);
+        html = html.replace(/\{\{SITE_DOMAIN\}\}/mg, APP_SETTING.site);
+        html = html.replace(/\{\{API_GATEWAY\}\}/mg, APP_SETTING.site + "api");
+        html = html.replace(/\{\{TIME\}\}/mg, Date.now());
+        html = html.replace(/\{\{services\}\}/mg, JSON.stringify(DEBUG_SERVICE_LIST));
+        res.end(html);
+    });
+}
 
 var SERVICE_MAP = {};
 var APP_SETTING;
@@ -118,6 +143,11 @@ server.post("/api", function(req, res, params) {
             }
         }
         server.handleUserSession(req, res, function(flag, user) {
+            if (user && user.isLogined) {
+                res.setHeader("userid", user.id);
+                res.setHeader("token", user.token);
+                res.setHeader("tokentimestamp", user.tokentimestamp);
+            }
             if (flag == false) {
                 if (security.needLogin != true) {
                     service[method](req, res, params, user);
@@ -283,11 +313,31 @@ exports.start = function(setting, callBack) {
 
     Session.init(setting.session);
 
+    if (setting.session.noAuth) {
+        server.handleUserSession = function(req, res, next, error, auth) {
+            var user = { isLogined:false };
+            next(0, user);
+        }
+    }
+
     var doRegisterService = function(path, file) {
         path = path.replace(global.APP_ROOT, "").replace("\\server\\", "").replace("/server/", "").replace("\\", "/");
         var service = global.requireModule(path + "/" + file);
         if (service.config && service.config.name && service.config.enabled == true) {
             SERVICE_MAP[service.config.name] = service;
+
+            if (DEBUG_SERVICE_LIST) {
+                var methods = [];
+                for (var key in service) {
+                    var val = service[key];
+                    if (typeof val != "function" || key.indexOf("$") == 0) continue;
+                    if (val.valueOf().toString().indexOf("(req, res,") > 0) {
+                        var security = service.config.security && service.config.security[key] ? service.config.security[key] : {};
+                        methods.push({ name: service.config.name + "." + key, security:security, index:methods.length });
+                    }
+                }
+                DEBUG_SERVICE_LIST.push({ index:DEBUG_SERVICE_LIST.length, group:file.replace("Service.js", ""), methods:methods });
+            }
         }
     }
 

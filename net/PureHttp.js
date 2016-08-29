@@ -3,6 +3,7 @@
  */
 
 
+var URL = require("url");
 var HTTP = require('http');
 HTTP.globalAgent.maxSockets = Infinity;
 
@@ -28,11 +29,20 @@ function Server() {
 
     this.__worker = HTTP.createServer(function (req, res) {
 
-        instance.__middleware.preprocess(req, res);
+        if (req.method == "GET") req.query = URL.parse(req.url, true).query;
 
         var url = req.url;
         var index = url.indexOf("?");
         if (index > 0) url = url.substring(0, index);
+
+        var handler = instance.__handlers[req.method][url];
+        if (!handler) {
+            res.writeHead(404);
+            res.end();
+            return;
+        }
+
+        instance.__middleware.preprocess(req, res);
 
         var data = [];
         req.on("data", function (chunk) {
@@ -40,13 +50,13 @@ function Server() {
         });
         req.on("end", function () {
 
-            data = Buffer.concat(data).toString('utf8');
+            if (req.method == "GET") {
+                data = req.query;
+            } else {
+                data = Buffer.concat(data).toString('utf8');
+            }
 
-            var handler = instance.__handlers[req.method][url];
-            handler = handler || function() {
-                                     res.writeHead(404);
-                                     res.end();
-                                 };
+            //if (DEBUG) console.log("incoming request ---> [" + url + "] " + req.method + " > ", data);
 
             instance.__middleware.process(req, res, data, handler);
         });
@@ -111,6 +121,7 @@ function JsonAPIMiddleware() {
             }
             if (arguments.length == 0) data = { flag:1 };
             var resBody = JSON.stringify({code: 1, data:data, msg:"OK"});
+            //if (req.query.callback) resBody = req.query.callback + "(" + resBody + ")";
             responseHeader['Content-Length'] = Buffer.byteLength(resBody, "utf8");
             this.writeHead(200, responseHeader);
             this.end(resBody);
@@ -133,6 +144,7 @@ function JsonAPIMiddleware() {
             }
             var responseHeader = { "Content-Type": "application/json" };
             var resBody = JSON.stringify({code: code, msg:msg});
+            //if (req.query.callback) resBody = req.query.callback + "(" + resBody + ")";
             responseHeader['Content-Length'] = Buffer.byteLength(resBody, "utf8");
             this.writeHead(200, responseHeader);
             this.end(resBody);
@@ -162,7 +174,7 @@ function JsonAPIMiddleware() {
     this.process = function(req, res, data, handler) {
         var params = null;
         try {
-            params = JSON.parse(data);
+            params = typeof data == "string" ? JSON.parse(data) : data;
         } catch (exp) {
             res.sayError(exp);
             return;
