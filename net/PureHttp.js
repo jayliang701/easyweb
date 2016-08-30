@@ -62,12 +62,18 @@ function Server() {
         });
     });
 
-    this.start = function(options) {
+    this.$server = this.__worker;
+
+    this.start = function(options, callBack) {
         options = options || {};
         this.__options = options;
         var port = options.port || 8888;
         var ip = options.ip || "127.0.0.1";
-        this.__worker.listen(port, ip);
+
+        this.__worker.listen(port, ip, function() {
+            if (callBack) callBack(instance, this.__worker);
+        });
+
         if (DEBUG) console.log("http server is running on port: " + port);
     }
 
@@ -93,6 +99,8 @@ function Server() {
         this.__middleware = middleware;
     }
 }
+
+require("util").inherits(Server, require('events'));
 
 exports.createServer = function() {
     var server = new Server();

@@ -131,45 +131,36 @@ exports.init = function(config) {
     agent = config.agent;
 
     /* setup server */
-    var EXPRESS  = require('express');
-    var BODY_PARSER = require('body-parser');
-    var METHOD_OVERRIDE = require('method-override');
+    var options = {
+        env:global.VARS.env,
+        host:"localhost",
+        port:Setting.ecosystem.port,
+        session:{}
+    };
+    server = require("../web/APIServer").createServer();
+    server.start(options, function(app) {
 
-    var App = EXPRESS();
-    server = App;
-    App.maxSockets = Infinity;
-    App.use(BODY_PARSER.urlencoded({ extended: true }));
-    App.use(BODY_PARSER.json());
-    App.use(METHOD_OVERRIDE());
-    /*
-    App.post("/connect", function (req, res) {
-        var client = req.body.client;
+        app.server.post("/message", function (req, res, params) {
+            var client = params.client;
+            var event = params.event;
+            var data = params.data;
 
-        console.log("*" + client + "* is connected.");
+            //if (DEBUG) console.log("receive message from *" + client + "* ---> [" + event + "]");
 
-        if (!server.__connected) server.__connected = {};
-        server.__connected[client] = { time:Date.now() };
+            res.end("{}");
 
-    });
-    */
-
-    App.post("/message", function (req, res) {
-        var client = req.body.client;
-        var event = req.body.event;
-        var data = req.body.data;
-
-        //if (DEBUG) console.log("receive message from *" + client + "* ---> [" + event + "]");
-
-        res.json({});
-
-        var list = server_notifyHandlers[client + "@" + event];
-        if (!list || list.length <= 0) return;
-        list.forEach(function(handler) {
-            if (handler) handler(data);
+            var list = server_notifyHandlers[client + "@" + event];
+            if (!list || list.length <= 0) return;
+            list.forEach(function(handler) {
+                if (handler) handler(data);
+            });
         });
-    });
 
-    App.listen(Setting.ecosystem.port);
+        app.handleUserSession = function(req, res, next, error, auth) {
+            var user = { isLogined:false };
+            next(0, user);
+        }
+    });
 
     /* setup client */
     var servers = Setting.ecosystem.servers;
