@@ -255,17 +255,39 @@ function APIServer() {
         var doRegisterService = function(path, file) {
             path = path.replace(global.APP_ROOT, "").replace("\\server\\", "").replace("/server/", "").replace("\\", "/");
             var service = global.requireModule(path + "/" + file);
+
             if (service.config && service.config.name && service.config.enabled == true) {
                 SERVICE_MAP[service.config.name] = service;
 
                 if (DEBUG_SERVICE_LIST) {
+
+                    var scripts = FS.readFileSync(PATH.join(global.APP_ROOT, "server/service/" + file), { encoding:"utf-8" });
+
                     var methods = [];
                     for (var key in service) {
                         var val = service[key];
                         if (typeof val != "function" || key.indexOf("$") == 0) continue;
                         if (val.valueOf().toString().indexOf("(req, res,") > 0) {
                             var security = service.config.security && service.config.security[key] ? service.config.security[key] : {};
-                            methods.push({ name: service.config.name + "." + key, security:security, index:methods.length });
+                            var def = { name: service.config.name + "." + key, security:security, index:methods.length, desc:"", paramsDesc:{} };
+                            methods.push(def);
+
+                            //parse comments
+                            var comment = scripts.match(new RegExp("//@" + key + "( )+.*[\r\n]+"));
+                            if (comment && comment[0]) {
+                                comment = comment[0].trim();
+                                var args = comment.match(new RegExp("@[a-zA-Z0-9]+( )+[^@\r\n]+", "g"));
+                                if (args && args.length > 0) {
+                                    def.desc = args[0].substring(args[0].indexOf(" ")).trim();
+                                    if (args.length > 1) {
+                                        for (var i = 1; i < args.length; i++) {
+                                            var argName = args[i].substring(1, args[i].indexOf(" ")).trim();
+                                            var argDesc = args[i].substring(args[i].indexOf(" ")).trim();
+                                            def.paramsDesc[argName] = argDesc;
+                                        }
+                                    }
+                                }
+                            }
                         }
                     }
                     DEBUG_SERVICE_LIST.push({ index:DEBUG_SERVICE_LIST.length, group:file.replace("Service.js", ""), methods:methods });
