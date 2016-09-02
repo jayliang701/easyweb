@@ -158,9 +158,32 @@ function JsonAPIMiddleware() {
             this.end(resBody);
         };
 
+        var done = function(err, result) {
+            var res = this;
+            if (err == -1) {
+                res.sayOK();
+                return;
+            }
+
+            if (err) {
+                res.sayError(err);
+            } else {
+                if (arguments.length == 0 || (arguments.length == 1 && (arguments[0] == null || arguments[1] == undefined))) {
+                    res.sayOK();
+                } else {
+                    res.sayOK(result);
+                }
+            }
+        }
+
         var exec = function(q, done) {
             var res = this;
             runAsQueue(q, function(err, result) {
+                if (err == -1) {
+                    res.sayOK();
+                    return;
+                }
+
                 if (err) {
                     res.sayError(err);
                 } else {
@@ -174,6 +197,7 @@ function JsonAPIMiddleware() {
             });
         }
 
+        res.done = done.bind(res);
         res.exec = exec.bind(res);
         res.sayError = fail.bind(res);
         res.sayOK = success.bind(res);

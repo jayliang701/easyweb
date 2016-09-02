@@ -150,17 +150,18 @@ function APIServer() {
             instance.handleUserSession(req, res, function(flag, user) {
                 if (user && user.isLogined) {
                     res.setAuth(user);
-                } else {
-                    res.setAuth(null);
                 }
+
                 if (flag == false) {
                     if (security.needLogin != true) {
                         service[method](req, res, params, user);
                     } else {
+                        res.setAuth(null);
                         res.sayError(CODES.NO_PERMISSION, "NO_PERMISSION");
                     }
                 } else {
                     if (security.allowUserType && security.allowUserType != 1 && security.allowUserType.indexOf(user.type) < 0) {
+                        res.setAuth(null);
                         res.sayError(CODES.NO_PERMISSION, "NO_PERMISSION");
                     } else {
                         service[method](req, res, params, user);
