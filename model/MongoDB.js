@@ -457,6 +457,12 @@ function closeAll(callBack) {
             }
         }, 0);
     });
+
+    if (dbs.length <= 0) {
+        process.nextTick(function() {
+            if (callBack) callBack();
+        });
+    }
 }
 
 function isOpen(dbName) {

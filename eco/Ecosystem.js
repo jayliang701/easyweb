@@ -151,10 +151,18 @@ exports.init = function(config, customSetting) {
             res.end("{}");
 
             var list = server_notifyHandlers[client + "@" + event];
-            if (!list || list.length <= 0) return;
-            list.forEach(function(handler) {
-                if (handler) handler(data);
-            });
+            if (list && list.length > 0) {
+                list.forEach(function(handler) {
+                    if (handler) handler(data);
+                });
+            }
+
+            list = server_notifyHandlers[event];
+            if (list && list.length > 0) {
+                list.forEach(function(handler) {
+                    if (handler) handler(data);
+                });
+            }
         });
 
         app.handleUserSession = function(req, res, next, error, auth) {
@@ -212,14 +220,14 @@ exports.fire = function(target, event, data, callBack) {
     //if (DEBUG) console.log("[Ecosystem] fire message to *" + target + "* --> " + event + " : " + (data ? JSON.stringify(data) : {}));
 
     //var startTime = Date.now();
-    var url = Setting.ecosystem.servers[target]["message"] + "/message";
-    exports.__fire(url, event, data, function(err, body) {
+    var target = Setting.ecosystem.servers[target]["message"];
+    exports.__fire(target, event, data, function(err, body) {
         if (callBack) callBack(err, body);
     });
 }
 
-exports.__fire = function(url, event, data, callBack) {
-    request(url,
+exports.__fire = function(target, event, data, callBack) {
+    request(target + "/message",
         {
             headers: {
                 'Content-Type': 'application/json'
@@ -249,6 +257,17 @@ exports.__fire = function(url, event, data, callBack) {
 
 exports.listen = function(target, event, handler) {
     var key = target + "@" + event;
+    var list = server_notifyHandlers[key];
+    if (!list) {
+        list = [];
+        server_notifyHandlers[key] = list;
+    }
+    if (list.indexOf(handler) >= 0) return;
+    list.push(handler);
+}
+
+exports.listenAll = function(event, handler) {
+    var key = event;
     var list = server_notifyHandlers[key];
     if (!list) {
         list = [];

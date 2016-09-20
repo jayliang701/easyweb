@@ -13,12 +13,15 @@ var handlers = {};
 
 var prefix = "";
 
+var CONFIG = { port:80 };
+
 function formatRedisKey(userID) {
     return Redis.join(`realtime_connections_${prefix}_${userID}`);
 }
 
 exports.init = function(config, httpServer) {
-    config = config || { port:80 };
+    config = config || CONFIG;
+    CONFIG = config;
 
     /* setup server */
     var port = config.port;
@@ -32,6 +35,8 @@ exports.init = function(config, httpServer) {
             server = SocketIO();
             server.listen(port);
         }
+        CONFIG.port = port;
+
         console.log("[Realtime] service is working on port: " + port);
     }
     if (server) server.on('connection', server_onClientConnected);
@@ -94,7 +99,6 @@ exports.kick = function(userID) {
 
 function server_onClientConnected(socket) {
 
-    var uid = socket.id;
     var conn = socket.request.connection;
 
     socket.info = {
@@ -119,13 +123,24 @@ function server_onClientConnected(socket) {
                 socket.info.tokentimestamp = sess.tokentimestamp;
 
                 var key = formatRedisKey(sess.userid);
-                Redis.do("ZREMRANGEBYSCORE", [ key, sess.tokentimestamp, sess.tokentimestamp ], function(res, err) {
+
+                var tasks = [];
+                tasks.push([ "ZREMRANGEBYSCORE", key, sess.tokentimestamp, sess.tokentimestamp, function(err) {
                     if (err) console.error("[Realtime] Redis.zremrangebyscore error when init socket connection --> " + err.toString());
-                    Redis.do("ZADD", [ key, sess.tokentimestamp, socket.id ], function(res, err) {
-                        if (err) console.error("[Realtime] Redis.zadd error when init socket connection --> " + err.toString());
+                } ]);
+                tasks.push([ "ZADD", key, sess.tokentimestamp, socket.id, function(err) {
+                    if (err) console.error("[Realtime] Redis.zadd error when init socket connection --> " + err.toString());
+                } ]);
+                if (CONFIG.useRoute) {
+                    tasks.push([ "SADD", Redis.join(`conn_${sess.userid}`), CONFIG.routeAddress, function(err) {
+                        if (err) console.error("[Realtime] Redis.sadd error when init socket connection --> " + err.toString());
+                    } ]);
+                }
+                Redis.multi(tasks, function(flag) {
+                    if (flag) {
                         socket.emit("$init", { msg:"hello", _time:Date.now() });
                         if (DEBUG) console.log("[Realtime] *client@" + socket.info.userid + "@" + socket.id + "* from " + socket.info.ip + ":" + socket.info.port + " has authority to sync.");
-                    });
+                    }
                 });
             } else {
                 //no auth to sync, close this client connection
@@ -169,6 +184,9 @@ function server_onClientConnected(socket) {
             if (this.info.userid) {
                 var key = formatRedisKey(this.info.userid);
                 Redis.do("ZREM", [ key, socket.id ]);
+                if (CONFIG.useRoute) {
+                    Redis.do("SREM", [ Redis.join(`conn_${this.info.userid}`), CONFIG.routeAddress ]);
+                }
             }
             console.log("[Realtime] *client@" + this.info.userid + "@" + this.info.token + "* disconnected....");
             delete this.info["userid"];

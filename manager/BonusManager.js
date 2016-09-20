@@ -23,10 +23,12 @@ function getBonusDetail(key){
     }
 }
 
-function init() {
+function init(ModelAgent) {
     BONUS = require("fs").readFileSync(global.getConfigPath("bonus.config"));
     BONUS = BONUS.toString("utf8");
     BONUS = JSON.parse(BONUS);
+
+    if (ModelAgent) Model = ModelAgent;
 }
 
 /* modified by YDY */
@@ -39,6 +41,7 @@ function init() {
  otherParams: 其他参数，可选，可为null, 可用于传入自定义奖励，例如：otherParams = { customBonus:{ point:20 } }
  */
 function addBonus(mainKey, key, info, callBack, otherParams) {
+    console.log(arguments);
     var bobj = BONUS;
     var path = key.split('.');
     for (var i = 0; i < path.length; i++) {
@@ -280,143 +283,6 @@ function checkDailyGroupMaxLimit( mainKey, config, limit, info, callBack) {
 
     }, filter, fields);
 }
-
-/* update by YDY */
-
-/*
- 检查每一个大类中的每个具体项当日是否已经完成并增加过积分，以及整个大类的次数是否超过指定上限；如否则为用户增加积分
- 参数：
- mainKey : 相关用户id
- config: 为BONUS.config中的json数据BONUS[key]
- limit: BONUS[mainKey]["$limit"]
- type: 类型，值为一字符串，取值范围为event/toy/...（暂时只有这两种），用于表示积分类型与活动还是玩具公测相关
- id: 对应的event/toy test的id
- */
-/*
-function checkDailyGroupMaxLimit( mainKey, config, limit, type, id, callBack) {
-    var q = [];
-    var crntDate = new Date();
-    var d = crntDate.getFullYear() + "/" + (crntDate.getMonth() + 1) + "/" + crntDate.getDate();
-    var time_l = new Date(d + " 0:00:00").getTime();
-    var time_h = new Date(d + " 23:59:59").getTime();
-
-    q.push(function(cb) {
-        var mKey = "dailyGroupMaxCheck." + limit.key;
-
-        //var filter0 = { id:mainKey, typeKey:type, timeKey:{"$gte":time_l,"$lte":time_h} ,idKey:id};
-        var filter0 = {id:mainKey};
-        filter0[mKey + ".activityType"] = type;
-        filter0[mKey + ".activityID"] = id;
-        filter0[mKey + ".time"] = {"$gte":time_l,"$lte":time_h};
-
-        var fields0 = {id:1};
-        Model.findOne(null, CNAME, function (uobj, err) {
-            if (err) {
-                cb(false, err);
-            } else{
-                if(uobj){
-                    //cb( [ CODES.DAILY_ALREADY_EXIST, "DAILY_ALREADY_EXIST" ]);
-                    cb(-1);
-                }else{
-                    cb(null, mKey);
-                }
-            }
-        }, filter0, fields0);
-    });
-
-    q.push(function(mKey, cb) {
-        //var filter = {id: mainKey, activityType: type, createTime: {"$gte": time_l, "$lte": time_h}};
-        var filter = {id:mainKey};
-        filter[mKey + ".activityType"] = type;
-        //filter0[mKey + ".activityID"] = id;
-        filter[mKey + ".time"] = {"$gte":time_l,"$lte":time_h};
-
-        var fields = {};
-        fields[mKey] = 1;
-        Model.findOne(null, CNAME, function (uobj, err) {
-            if (err) {
-                cb(err);
-            } else {
-                var upParams = {};
-                var now = Date.now();
-                var allow = false;
-
-                if (uobj) {
-                    uobj.dailyGroupMaxCheck = uobj.dailyGroupMaxCheck ? uobj.dailyGroupMaxCheck : {};
-
-                    if (uobj.dailyGroupMaxCheck["share_event"] && uobj.dailyGroupMaxCheck["share_event"].length >= limit.max) {
-                        console.log("MAX_TIME_REACHED = =");
-                        allow = false;
-                    } else {
-                        var ds = uobj.dailyGroupMaxCheck[limit.key];
-                        if (!ds || isNaN(ds.time) || ds.time == 0) {
-                            allow = true;
-                        } else {
-                            var lastDate = new Date();
-                            lastDate.setTime(ds.time);
-                            now = ds.time;
-
-                            var today = new Date();
-                            today.setTime(now);
-
-                            if (lastDate.getFullYear() != today.getFullYear() || lastDate.getMonth() != today.getMonth() || lastDate.getDate() != today.getDate()) {
-                                allow = true;
-                            } else {
-                                ds.value = ds.value ? ds.value : {};
-
-                                for (var bk in limit.max) {
-                                    if (ds.value[bk] + config[bk] > limit.max[bk]) {
-                                        allow = false;
-                                        break;
-                                    } else {
-                                        allow = true;
-                                    }
-                                }
-                            }
-                        }
-                    }
-                } else {
-                    allow = true;
-                }
-
-                if (allow) {
-                    var activityTypeStr = "dailyGroupMaxCheck." + limit.key + ".activityType";
-                    var activityIDStr = "dailyGroupMaxCheck." + limit.key + ".activityID";
-                    var mKey = "dailyGroupMaxCheck." + limit.key;
-
-                    //upParams = { "$push":{mKey: {activityTypeStr: type, activityIDStr: id, "time":now, "value":{} } } };
-                    upParams = { "$push":{} };
-                    upParams["$push"][mKey] = {};
-                    upParams["$push"][mKey]["activityType"] = type;
-                    upParams["$push"][mKey]["activityID"] = id;
-                    upParams["$push"][mKey]["time"] = now;
-                    upParams["$push"][mKey]["value"] = {};
-
-                    for (var bk in config) {
-                        if (bk.indexOf("$") != 0) {
-                            upParams["$push"][mKey]["value"][ bk ] = config[bk];
-                        }
-                    }
-                }
-
-                cb(null, allow, upParams);
-            }
-        }, filter, fields);
-    });
-
-    Utils.runQueueTask(q, function(err, allow, upParams) {
-        if (err == -1) {
-            callBack(false, null, upParams);
-            return;
-        }
-        if (err) {
-            callBack(false, err, upParams);
-        } else {
-            callBack(allow, null, upParams);
-        }
-    });
-}
-*/
 
 /*
  检查自定义类中的每个具体项是否已经完成并增加过积分，以及整个大类的次数是否超过指定上限；如否则为用户增加积分

@@ -11,16 +11,17 @@ var payload = {};
 
 exports.init = function(params) {
     config = params;
+    config.prefix = config.prefix || "";
     if (config.onePointEnter) {
         payload.formatKey = function(id, token) {
-            return "user_sess_" + id;
+            return config.prefix + "user_sess_" + id;
         }
         payload.checkSess = function(id, token, sess) {
             return sess.userid == id && sess.token == token;
         }
     } else {
         payload.formatKey = function(id, token) {
-            return "user_sess_" + id + "_" + token;
+            return config.prefix + "user_sess_" + id + "_" + token;
         }
         payload.checkSess = function(id, token, sess) {
             return true;

@@ -240,7 +240,9 @@ exports.closeDB = function(name, callBack) {
 
 // If the Node process ends, close all db connections
 process.on('SIGINT', function() {
-    db.closeAll(function () {
-        process.exit(0);
-    });
+    if (db) {
+        db.closeAll(function () {
+            process.exit(0);
+        });
+    }
 });
