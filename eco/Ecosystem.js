@@ -126,14 +126,15 @@ var Client = function(name) {
 
 Client.clients = {};
 
-exports.init = function(config) {
+exports.init = function(config, customSetting) {
+    Setting = customSetting || Setting;
     config = config || {};
     agent = config.agent;
 
     /* setup server */
     var options = {
         env:global.VARS.env,
-        host:"localhost",
+        host:Setting.ecosystem.host || "localhost",
         port:Setting.ecosystem.port,
         session:{}
     };
@@ -212,6 +213,12 @@ exports.fire = function(target, event, data, callBack) {
 
     //var startTime = Date.now();
     var url = Setting.ecosystem.servers[target]["message"] + "/message";
+    exports.__fire(url, event, data, function(err, body) {
+        if (callBack) callBack(err, body);
+    });
+}
+
+exports.__fire = function(url, event, data, callBack) {
     request(url,
         {
             headers: {
