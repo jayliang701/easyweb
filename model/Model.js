@@ -17,6 +17,7 @@ var SAVE_LEVEL_MAPPING = {};
 var CACHE_POOL = {
     "1" : memory,
     "2" : redis
+    //"3" : fs
 };
 
 exports.init = function(option, callBack) {
@@ -41,16 +42,21 @@ exports.init = function(option, callBack) {
                 if (def.hasOwnProperty("expired.2")) {
                     CACHE_POOL["2"].registerExpiredTime(key, def["expired.2"]);
                 }
-                if (def.level == 1) {
-                    SAVE_LEVEL_MAPPING[key] = "1";
+                if (def.level > 2) {
+                    SAVE_LEVEL_MAPPING[key] = String(def.level);
+                    READ_LEVEL_MAPPING[key] = String(def.level);
                 } else {
-                    SAVE_LEVEL_MAPPING[key] = "2";
-                }
+                    if (def.level == 1) {
+                        SAVE_LEVEL_MAPPING[key] = "1";
+                    } else {
+                        SAVE_LEVEL_MAPPING[key] = "2";
+                    }
 
-                if (def.level == 2) {
-                    READ_LEVEL_MAPPING[key] = "2";
-                } else {
-                    READ_LEVEL_MAPPING[key] = "1";
+                    if (def.level == 2) {
+                        READ_LEVEL_MAPPING[key] = "2";
+                    } else {
+                        READ_LEVEL_MAPPING[key] = "1";
+                    }
                 }
             }
         }
@@ -84,6 +90,10 @@ exports.init = function(option, callBack) {
     });
 
     CACHE_POOL[2].addEventListener("save", syncUpLevelCacheHandler);
+}
+
+exports.registerCacheSystem = function(level, system) {
+    CACHE_POOL[level] = system;
 }
 
 function syncUpLevelCacheHandler(event) {

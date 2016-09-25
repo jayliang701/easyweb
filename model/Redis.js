@@ -55,7 +55,7 @@ exports.registerExpiredTime = function(key, expired) {
 exports.save = function(key, val, expired, callBack) {
     var tempKey = key;
     var originalKey = key;
-    if (UTIL.isArray(key)) {
+    if (key instanceof Array) {
         tempKey = key[0];
         if (!expired) expired = EXPIRED_MAP[tempKey];
         key = key.join("->");
@@ -78,7 +78,7 @@ exports.save = function(key, val, expired, callBack) {
 }
 
 exports.read = function(key, callBack) {
-    if (UTIL.isArray(key)) {
+    if (key instanceof Array) {
         key = key.join("->");
     }
     exports.get(CACHE_PREFIX + key, function(res, err) {
@@ -99,7 +99,7 @@ exports.read = function(key, callBack) {
 }
 
 exports.remove = function(key, callBack) {
-    if (UTIL.isArray(key)) {
+    if (key instanceof Array) {
         key = key.join("->");
     }
     //console.log('clear cache [' + key + '] from 1.');
