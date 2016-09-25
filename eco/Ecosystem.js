@@ -220,7 +220,7 @@ exports.fire = function(target, event, data, callBack) {
     //if (DEBUG) console.log("[Ecosystem] fire message to *" + target + "* --> " + event + " : " + (data ? JSON.stringify(data) : {}));
 
     //var startTime = Date.now();
-    var target = Setting.ecosystem.servers[target]["message"];
+    target = Setting.ecosystem.servers[target]["message"];
     exports.__fire(target, event, data, function(err, body) {
         if (callBack) callBack(err, body);
     });

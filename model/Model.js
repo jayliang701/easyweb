@@ -243,8 +243,12 @@ exports.openDB = function(config, callBack, asDefault) {
 }
 
 exports.closeDB = function(name, callBack) {
+    if (!db) {
+        if (callBack) callBack();
+        return;
+    }
     db.close(name, function(err) {
-        callBack(err);
+        if (callBack) callBack(err);
     });
 }
 

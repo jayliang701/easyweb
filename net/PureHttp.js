@@ -12,6 +12,7 @@ HTTP.globalAgent.maxSockets = Infinity;
 //var BufferHelper = require('bufferhelper');
 
 var DEBUG = global.VARS && global.VARS.debug;
+var PROFILING = global.VARS && global.VARS.profiling;
 
 function Server() {
 
@@ -133,6 +134,8 @@ function JsonAPIMiddleware() {
             responseHeader['Content-Length'] = Buffer.byteLength(resBody, "utf8");
             this.writeHead(200, responseHeader);
             this.end(resBody);
+
+            this.profile();
         };
 
         var fail = function () {
@@ -156,6 +159,8 @@ function JsonAPIMiddleware() {
             responseHeader['Content-Length'] = Buffer.byteLength(resBody, "utf8");
             this.writeHead(200, responseHeader);
             this.end(resBody);
+
+            this.profile();
         };
 
         var done = function(err, result) {
@@ -197,6 +202,7 @@ function JsonAPIMiddleware() {
             });
         }
 
+        res.profile = function() {};
         res.done = done.bind(res);
         res.exec = exec.bind(res);
         res.sayError = fail.bind(res);

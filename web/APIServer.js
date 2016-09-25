@@ -5,17 +5,43 @@ var FS = require("fs");
 var PATH = require("path");
 
 var Model = require("../model/Model");
+var Redis = require("../model/Redis");
 var Session = require("../model/Session");
 var Utils = require("../utils/Utils");
 var CODES = require("./../ErrorCodes");
 
 var DEBUG = global.VARS && global.VARS.debug;
+var PROFILING = global.VARS && global.VARS.profiling;
 
 var PureHttp = require("../net/PureHttp");
 var JsonAPIMiddleware = PureHttp.JsonAPIMiddleware;
 
 function CustomMiddleware() {
     var jam = new JsonAPIMiddleware();
+
+    var profileRecords = [];
+    var profileTimer = setInterval(function() {
+        //save profile
+        saveProfile();
+    }, 3000);
+
+    function saveProfile() {
+        if (profileRecords && profileRecords.length > 0) {
+            Redis.multi(profileRecords);
+            profileRecords.length = 0;
+        }
+    }
+    function profiling(req) { }
+    if (PROFILING) {
+        profiling = function(req) {
+            if (isNaN(req.$apiStartTime) || req.$apiStartTime <= 0) return;
+            var now = Date.now();
+            var costTime = Date.now() - req.$apiStartTime;
+            var method = req.$apiMethod.replace(".", "_");
+
+            profileRecords.push([ "ZADD", Redis.join(`profile_api_${method}`), costTime, now ]);
+        }
+    }
 
     var setResponseAuth = function(userid, token, tokentimestamp) {
         if (arguments[0] == null || arguments[0] == undefined) {
@@ -55,6 +81,10 @@ function CustomMiddleware() {
         req._identifyID = identify_id;
 
         jam.preprocess(req, res);
+
+        res.profile = function() {
+            profiling(req);
+        }
     }
 
     this.process = function(req, res, data, handler) {
@@ -104,6 +134,7 @@ function APIServer() {
             return;
         }
 
+        req.$apiMethod = method;
         method = method.split(".");
         var service = SERVICE_MAP[method[0]];
         if (!service || !service.hasOwnProperty(method[1])) {
@@ -135,6 +166,8 @@ function APIServer() {
                 return;
             }
         }
+
+        req.$apiStartTime = Date.now();
 
         method = method[1];
 
