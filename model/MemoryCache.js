@@ -20,6 +20,7 @@ exports.save = function(key, val, expired, callBack) {
     CACHE.put(key, val, expired);
     //console.log('1 -> cache [' + key + '] saved.');
     if (callBack) callBack(true);
+    return val;
 }
 
 exports.read = function(key, callBack) {

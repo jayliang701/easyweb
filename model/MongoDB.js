@@ -34,7 +34,7 @@ function open(host, port, name, option, callBack, asDefault) {
         if (newDB) {
             dbMap[name] = newDB;
             if (asDefault) defaultDB = newDB;
-            console.log("Database connection[" + name + "] init completed.   [driver: " + driver + ", poolSize: " + poolSize + "]");
+            console.log("Database connection[" + name + "] init completed.   [default:" + asDefault + ", driver: " + driver + ", poolSize: " + poolSize + "]");
         }
 
         if (callBack) {
@@ -139,7 +139,7 @@ function find(dbName, target, callBack, filter, fields, sort, pagination) {
     if (sort) opt.sort = sort;
     if (pagination)  {
         opt.limit = pagination.num;
-        opt.skip = pagination.index * opt.limit;
+        if (pagination.index > 0) opt.skip = pagination.index * opt.limit;
     }
     args.push(opt);
     args.push(function(err1, cursor) {

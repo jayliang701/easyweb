@@ -66,7 +66,18 @@ exports.save = function(key, val, expired, callBack) {
     if (typeof val == "object") {
         val = JSON.stringify(val);
     }
-    exports.set(CACHE_PREFIX + key, val, function(redisRes, redisErr) {
+    if (key.substr(0, 1) == "@") {
+        key = exports.join(key, CACHE_PREFIX);
+    } else {
+        key = exports.join(CACHE_PREFIX + key);
+    }
+    client.set(key, val, function (redisErr, redisRes) {
+        if (!expired || expired == - 1) {
+            //no expired
+        } else {
+            client.expire(key, expired);
+        }
+
         if (redisRes) {
             //console.log('2 -> cache [' + key + '] saved. expired ==> ' + expired);
             Dispatcher.emit("save", tempKey, originalKey, originalVal);
@@ -74,14 +85,21 @@ exports.save = function(key, val, expired, callBack) {
             Dispatcher.emit("error", tempKey, originalKey, redisErr);
         }
         if (callBack) callBack(redisRes, redisErr);
-    }, expired);
+    });
+
+    return val;
 }
 
 exports.read = function(key, callBack) {
     if (key instanceof Array) {
         key = key.join("->");
     }
-    exports.get(CACHE_PREFIX + key, function(res, err) {
+    if (key.substr(0, 1) == "@") {
+        key = exports.join(key, CACHE_PREFIX);
+    } else {
+        key = exports.join(CACHE_PREFIX + key);
+    }
+    client.get(key, function(err, res) {
         if (err) {
             if (callBack) callBack(null, err);
         } else {
@@ -102,8 +120,16 @@ exports.remove = function(key, callBack) {
     if (key instanceof Array) {
         key = key.join("->");
     }
-    //console.log('clear cache [' + key + '] from 1.');
-    exports.del(CACHE_PREFIX + key, callBack);
+    if (key.substr(0, 1) == "@") {
+        key = exports.join(key, CACHE_PREFIX);
+    } else {
+        key = exports.join(CACHE_PREFIX + key);
+    }
+    client.del(key, function(err, removedNum) {
+        if (callBack) {
+            callBack(err ? false : true, err, removedNum);
+        }
+    });
 }
 
 exports.set = function(key, val, callBack, expired) {
@@ -346,7 +372,7 @@ exports.on = function (event, callBack) {
     client.on(event, callBack);
 }
 
-exports.join = function(key) {
+exports.join = function(key, preKey) {
     var redisKey = KEY_CACHE[key];
     if (redisKey) return redisKey;
 
@@ -362,7 +388,7 @@ exports.join = function(key) {
     }
 
     var prefix = groups[group];
-    KEY_CACHE[redisKey] = prefix + key;
+    KEY_CACHE[redisKey] = prefix + (preKey || "") + key;
     return KEY_CACHE[redisKey];
 }
 

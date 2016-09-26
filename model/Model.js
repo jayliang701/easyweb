@@ -161,7 +161,7 @@ exports.cacheSave = function(key, val, expired, callBack, level) {
         }
     }
     if (isNaN(level)) level = 1;
-    CACHE_POOL[level].save(key, val, expired, callBack);
+    return CACHE_POOL[level].save(key, val, expired, callBack);
 }
 
 exports.cacheRemove = function(key, callBack, level) {
@@ -237,8 +237,8 @@ exports.openDB = function(config, callBack, asDefault) {
             config.port,
             config.name,
             config.option,
-            function(flag, err) {
-                callBack(err);
+            function(err, db) {
+                callBack(err, db);
             }, asDefault ? true : false);
 }
 
