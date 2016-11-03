@@ -61,7 +61,11 @@ function CustomMiddleware() {
         this.setHeader("tokentimestamp", tokentimestamp);
     }
 
+    this.processCORS = function(req, res) { return false; }
+
     this.preprocess = function(req, res) {
+
+        this.processCORS(req, res);
 
         res.setHeader("Access-Control-Allow-Headers", "IdentifyID, X-Requested-With, X-HTTP-Method-Override, Content-Type, Content-Length, Connection, Origin, Accept, Authorization, userid, token, tokentimestamp");
 
@@ -71,14 +75,14 @@ function CustomMiddleware() {
         res._req = req;
         req._clientIP = Utils.parseIP(req);
 
-        var identify_id = req.headers["IdentifyID"];
-        if (!identify_id) {
-            identify_id = Utils.md5(req.headers["user-agent"] + req._clientIP + Date.now());
-            res.setHeader("IdentifyID", identify_id);
+        var identifyid = req.headers["identifyid"];
+        if (!identifyid) {
+            identifyid = Utils.md5(req.headers["user-agent"] + req._clientIP + Date.now());
+            res.setHeader("identifyid", identifyid);
 
             //console.log("new identify_id --> " + identify_id);
         }
-        req._identifyID = identify_id;
+        req._identifyID = identifyid;
 
         jam.preprocess(req, res);
 
@@ -252,7 +256,7 @@ function APIServer() {
                 //no cookies...
                 next(0, user);
             } else {
-                Session.check(userid, token, function(flag, sess, err) {
+                this.Session.check(userid, token, function(flag, sess, err) {
                     if (err) {
                         error(err);
                     } else {
@@ -284,7 +288,18 @@ function APIServer() {
     this.start = function(setting, callBack) {
         APP_SETTING = setting;
 
-        Session.init(setting.session);
+        if (setting.session && typeof setting.session == "object") {
+            if (setting.session.constructor == Object) {
+                this.Session = new Session();
+                this.Session.init(setting.session);
+            } else if (setting.session.constructor == Session) {
+                this.Session = setting.session;
+            }
+        } else {
+            this.handleUserSession = function(req, res, next, error, auth) {
+                next(0, { isLogined:false });
+            }
+        }
 
         var doRegisterService = function(path, file) {
             path = path.replace(global.APP_ROOT, "").replace("\\server\\", "").replace("/server/", "").replace("\\", "/");

@@ -112,12 +112,12 @@ function preprocess(req, res, next) {
     res._req = req;
     req._clientIP = Utils.parseIP(req);
 
-    var identify_id = req.cookies.identify_id;
-    if (!identify_id) {
-        identify_id = Utils.md5(req.headers["user-agent"] + req._clientIP + Date.now());
-        res.cookie("identify_id", identify_id);
+    var identifyid = req.cookies.identifyid;
+    if (!identifyid) {
+        identifyid = Utils.md5(req.headers["user-agent"] + req._clientIP + Date.now());
+        res.cookie("identifyid", identifyid);
     }
-    req._identifyID = identify_id;
+    req._identifyID = identifyid;
 
     res.exec = exec.bind(res);
     res.sayError = sayError.bind(res);

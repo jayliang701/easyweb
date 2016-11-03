@@ -321,7 +321,7 @@ App.handleUserSession = function(req, res, next, error, auth) {
             //no cookies...
             next(0, user);
         } else {
-            Session.check(userid, token, function(flag, sess, err) {
+            Session.getSharedInstance().check(userid, token, function(flag, sess, err) {
                 if (err) {
                     error(err);
                 } else {
@@ -422,10 +422,17 @@ exports.start = function(setting, callBack) {
 
     require("../utils/Captcha").setup(App);
 
-    Session.init(setting.session);
+    Session.getSharedInstance().init(setting.session);
+
+    var location = setting.location || {};
+    var serverPath = location.server || "server";
+    var routerPath = location.router || `${serverPath}/router`;
+    var servicePath = location.service || `${serverPath}/service`;
+    var clientPath = location.client || "client";
+    var viewPath = location.view || `${clientPath}/views`;
 
     var doRegisterRouter = function(path, file) {
-        path = path.replace(global.APP_ROOT, "").replace("\\server\\", "").replace("/server/", "").replace("\\", "/");
+        path = path.replace(global.APP_ROOT, "").replace("\\" + serverPath + "\\", "").replace("/" + serverPath + "/", "").replace("\\", "/");
         if (file.indexOf("__") == 0 && !global.VARS.debug) return;
         var router = global.requireModule(path + "/" + file);
         if (router.hasOwnProperty('getRouterMap') && router.getRouterMap) {
@@ -440,7 +447,7 @@ exports.start = function(setting, callBack) {
     }
 
     var doRegisterService = function(path, file) {
-        path = path.replace(global.APP_ROOT, "").replace("\\server\\", "").replace("/server/", "").replace("\\", "/");
+        path = path.replace(global.APP_ROOT, "").replace("\\" + serverPath + "\\", "").replace("/" + serverPath + "/", "").replace("\\", "/");
         var service = global.requireModule(path + "/" + file);
         inject(service);
         if (service.config && service.config.name && service.config.enabled == true) {
@@ -465,29 +472,36 @@ exports.start = function(setting, callBack) {
     }
 
     //init routers
-    var routerFolder = PATH.join(global.APP_ROOT, "server/router");
+    var routerFolder = PATH.join(global.APP_ROOT, routerPath);
     if (FS.existsSync(routerFolder)) {
-        var SWIG = require("swig");
-        // To disable Swig's cache, do the following:
-        var SWIG_PARAMS = { };
+        var viewEngine;
         var viewCache = String(global.VARS.viewCache) == true;
-        SWIG_PARAMS.cache = viewCache;
-        SWIG.setDefaults(SWIG_PARAMS);
-        App.engine('html', SWIG.renderFile);
+        viewPath = PATH.join(global.APP_ROOT, viewPath);
+        if (setting.viewEngine && setting.viewEngine.init) {
+            viewEngine = setting.viewEngine.init(App, viewPath, viewCache);
+        } else {
+            var SWIG = require("swig");
+            // To disable Swig's cache, do the following:
+            var SWIG_PARAMS = { };
+            SWIG_PARAMS.cache = viewCache;
+            SWIG.setDefaults(SWIG_PARAMS);
+            App.engine('html', SWIG.renderFile);
+            viewEngine = SWIG;
+        }
 
         App.set('view engine', 'html');
-        App.set('views', PATH.join(global.APP_ROOT, "client/views"));
+        App.set('views', viewPath);
         App.set('view cache', viewCache);
 
-        require("../utils/SwigFilter").init({ cdnUrl: setting.cdn.res });
+        require("../utils/ViewEngineFilter").init({ engine:viewEngine, cdnUrl: setting.cdn.res });
 
         checkFolder(routerFolder, doRegisterRouter);
     }
 
     //init services
-    var serviceFolder = PATH.join(global.APP_ROOT, "server/service");
+    var serviceFolder = PATH.join(global.APP_ROOT, servicePath);
     if (FS.existsSync(serviceFolder)) {
-        checkFolder(PATH.join(global.APP_ROOT, "server/service"), doRegisterService);
+        checkFolder(PATH.join(global.APP_ROOT, servicePath), doRegisterService);
     }
 
     var port = setting.port;

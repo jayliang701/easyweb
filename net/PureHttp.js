@@ -30,14 +30,25 @@ function Server() {
 
     this.__worker = HTTP.createServer(function (req, res) {
 
+        if (req.method == "OPTIONS") {
+            if (instance.__middleware.processCORS(req, res)) {
+                res.writeHead(200);
+            } else {
+                res.writeHead(404);
+            }
+            res.end();
+            return;
+        }
+
         if (req.method == "GET") req.query = URL.parse(req.url, true).query;
 
         var url = req.url;
         var index = url.indexOf("?");
         if (index > 0) url = url.substring(0, index);
 
-        var handler = instance.__handlers[req.method][url];
-        if (!handler) {
+        var handlerMap = instance.__handlers[req.method];
+        var handler = handlerMap[url];
+        if (!handlerMap || !handler) {
             res.writeHead(404);
             res.end();
             return;
@@ -109,6 +120,10 @@ exports.createServer = function() {
 }
 
 function DefaultMiddleware() {
+    this.processCORS = function(req, res) {
+        return false;
+    }
+
     this.preprocess = function(req, res) {
 
     }

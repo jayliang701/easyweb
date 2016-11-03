@@ -2,7 +2,7 @@
  * Created by Jay on 7/29/15.
  */
 
-var SWIG;
+var Engine;
 var Utils = require("./Utils.js");
 
 var WEEK_DAY_CN = [ '周日', '周一', '周二', '周三', '周四', '周五', '周六' ];
@@ -12,7 +12,7 @@ var CDN_URL = "";
 var FILTER_MAP = {};
 
 exports.init = function(options) {
-    SWIG = require("swig");
+    Engine = options.engine || require("swig");
     CDN_URL = options.cdnUrl;
     if (CDN_URL.charCodeAt(CDN_URL.length - 1) == "/") CDN_URL = CDN_URL.substr(0, CDN_URL.length - 1);
 
@@ -28,10 +28,11 @@ exports.init = function(options) {
     exports.addFilter("wrap", wrap);
 }
 
-exports.addFilter = function(key, func) {
+exports.addFilter = function(key, handler) {
     if (FILTER_MAP[key]) return;
-    SWIG.setFilter(key, func);
-    FILTER_MAP[key] = func;
+    var func = Engine.setFilter || Engine.$setFilter;
+    func && func.apply(Engine, [ key, handler ]);
+    FILTER_MAP[key] = handler;
 }
 
 function fetch(arr, prop, defaultVal) {

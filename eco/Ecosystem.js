@@ -135,8 +135,7 @@ exports.init = function(config, customSetting) {
     var options = {
         env:global.VARS.env,
         host:Setting.ecosystem.host || "localhost",
-        port:Setting.ecosystem.port,
-        session:{}
+        port:Setting.ecosystem.port
     };
     server = require("../web/APIServer").createServer();
     server.start(options, function(app) {
@@ -217,11 +216,11 @@ exports.broadcast = function(event, data, callBack) {
 }
 
 exports.fire = function(target, event, data, callBack) {
-    //if (DEBUG) console.log("[Ecosystem] fire message to *" + target + "* --> " + event + " : " + (data ? JSON.stringify(data) : {}));
-
     //var startTime = Date.now();
-    target = Setting.ecosystem.servers[target]["message"];
-    exports.__fire(target, event, data, function(err, body) {
+    var address = Setting.ecosystem.servers[target]["message"];
+    //if (DEBUG) console.log("[Ecosystem] *" + Setting.ecosystem.name + "* fire message to *" + target + "@" + address + "* --> " + event + " : " + (data ? JSON.stringify(data) : {}));
+
+    exports.__fire(address, event, data, function(err, body) {
         if (callBack) callBack(err, body);
     });
 }

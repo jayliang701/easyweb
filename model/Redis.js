@@ -6,6 +6,13 @@ var REDIS = require("redis");
 var UTIL = require('util');
 
 var EventEmitter = require("events").EventEmitter;
+/*
+function RedisClient() {
+    EventEmitter.call(this);
+    this.client = null;
+}
+*/
+
 var Dispatcher = new EventEmitter();
 
 var client;
@@ -27,7 +34,7 @@ var EXPIRED_MAP = {};
 var CACHE_PREFIX = "CACHE_";
 
 exports.addEventListener = function(type, handler) {
-    Dispatcher.on(type, handler);
+    Dispatcher.addListener(type, handler);
 }
 
 exports.removeEventListener = function(type, handler) {
@@ -392,6 +399,46 @@ exports.join = function(key, preKey) {
     return KEY_CACHE[redisKey];
 }
 
+exports.checkLock = function(lockKey, callBack, checkDelay, timeout, currentRetry) {
+    timeout = timeout || 30;
+    currentRetry = currentRetry || 0;
+    var maxRetry = Math.ceil((timeout * 1000) / checkDelay);
+    exports.do("SETNX", [ exports.join(lockKey + "_redisLock"), Date.now() ], function(res, err) {
+        if (err) {
+            callBack(err);
+        } else {
+            var isLocked = res == 0;
+            if (isLocked) {
+                console.log(`found lock, wait ---> lock key: ${lockKey}`);
+                if (currentRetry >= maxRetry) {
+                    callBack(new Error("access locked"));
+                    return;
+                }
+                currentRetry ++;
+                setTimeout(function() {
+                    console.log("check lock retry ---> " + currentRetry);
+                    exports.checkLock(lockKey, callBack, checkDelay, timeout, currentRetry);
+                }, checkDelay == undefined ? 10 : Number(checkDelay));
+            } else {
+                callBack();
+            }
+        }
+    });
+}
+
+exports.releaseLock = function(lockKey, callBack) {
+    exports.do("DEL", [ exports.join(lockKey + "_redisLock") ], function(res, err) {
+        if (err) console.error(`release lock *${lockKey}* error ---> ${err}`);
+        callBack && callBack(err);
+    });
+}
+
+exports.releaseAllLocks = function(callBack) {
+    exports.findKeysAndDel("*_redisLock", function(err, num) {
+        callBack && callBack(err, num);
+    });
+}
+
 var groups = {};
 
 var KEY_CACHE = {};
@@ -422,9 +469,11 @@ exports.start = function(host, port, pass, prefixName, callBack) {
     client.on("connect", function() {
         console.log("Redis Server<" + host + ":" + port + "> is connected.");
         client.__working = true;
-        if (client.__startCallBack) {
-            client.__startCallBack();
-            client.__startCallBack = null;
-        }
+        exports.releaseAllLocks(function() {
+            if (client.__startCallBack) {
+                client.__startCallBack();
+                client.__startCallBack = null;
+            }
+        });
     });
 }

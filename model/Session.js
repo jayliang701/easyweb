@@ -5,31 +5,33 @@ var Memory = require("./MemoryCache");
 var Redis = require("./Redis");
 var Utils = require("../utils/Utils");
 
-var config;
+function Session() {
+    if (!Session.$instance) Session.$instance = this;
+    this.config = {};
+}
 
-var payload = {};
-
-exports.init = function(params) {
-    config = params;
-    config.prefix = config.prefix || "";
-    if (config.onePointEnter) {
-        payload.formatKey = function(id, token) {
-            return config.prefix + "user_sess_" + id;
+Session.prototype.init = function(params) {
+    this.config = params;
+    this.config.prefix = this.config.prefix || "";
+    var ins = this;
+    if (this.config.onePointEnter) {
+        this.formatKey = function(id, token) {
+            return ins.config.prefix + "user_sess_" + id;
         }
-        payload.checkSess = function(id, token, sess) {
+        this.checkSess = function(id, token, sess) {
             return sess.userid == id && sess.token == token;
         }
     } else {
-        payload.formatKey = function(id, token) {
-            return config.prefix + "user_sess_" + id + "_" + token;
+        this.formatKey = function(id, token) {
+            return ins.config.prefix + "user_sess_" + id + "_" + token;
         }
-        payload.checkSess = function(id, token, sess) {
+        this.checkSess = function(id, token, sess) {
             return true;
         }
     }
 }
 
-exports.save = function(user, callBack) {
+Session.prototype.save = function(user, callBack) {
 
     var tokentimestamp = Date.now();
 
@@ -40,21 +42,22 @@ exports.save = function(user, callBack) {
     sess.type = user.type;
     sess.extra = user.extra;
 
-    var key = payload.formatKey(sess.userid, sess.token);
+    var key = this.formatKey(sess.userid, sess.token);
 
+    var ins = this;
     Redis.setHashMulti(key, sess, function(redisRes, redisErr) {
         if (redisRes) {
-            Memory.save(key, sess, config.cacheExpireTime, null);
+            Memory.save(key, sess, ins.config.cacheExpireTime, null);
             if (callBack) callBack(sess);
         } else {
             if (callBack) callBack(null, redisErr);
         }
-    }, config.tokenExpireTime);
+    }, ins.config.tokenExpireTime);
 }
 
-exports.remove = function(user, callBack) {
+Session.prototype.remove = function(user, callBack) {
     var id = user.id ? user.id : user.userid;
-    var key = payload.formatKey(id, user.token);
+    var key = this.formatKey(id, user.token);
     Memory.remove(key);
     Redis.del(key, function(redisRes, redisErr) {
         if (redisRes) {
@@ -65,19 +68,19 @@ exports.remove = function(user, callBack) {
     });
 }
 
-exports.refresh = function(user) {
+Session.prototype.refresh = function(user) {
     var id = user.id ? user.id : user.userid;
-    var key = payload.formatKey(id, user.token);
-    Memory.setExpireTime(key, config.tokenExpireTime);
-    Redis.setExpireTime(key, config.tokenExpireTime);
+    var key = this.formatKey(id, user.token);
+    Memory.setExpireTime(key, this.config.tokenExpireTime);
+    Redis.setExpireTime(key, this.config.tokenExpireTime);
 }
 
-exports.check = function(id, token, callBack) {
+Session.prototype.check = function(id, token, callBack) {
 
-    var key = payload.formatKey(id, token);
+    var key = this.formatKey(id, token);
     var cache = Memory.read(key);
     if (cache) {
-        if (payload.checkSess(id, token, cache)) {
+        if (this.checkSess(id, token, cache)) {
             callBack(1, cache);
         } else {
             callBack(0);
@@ -85,12 +88,13 @@ exports.check = function(id, token, callBack) {
         return;
     }
 
+    var ins = this;
     Redis.getHashAll(key, function(sess, err) {
         if (err) {
             callBack(-1, null, err);
         } else {
             if (sess) {
-                if (payload.checkSess(id, token, sess)) {
+                if (ins.checkSess(id, token, sess)) {
                     callBack(1, sess);
                 } else {
                     callBack(0);
@@ -101,3 +105,18 @@ exports.check = function(id, token, callBack) {
         }
     });
 }
+
+Session.getSharedInstance = function() {
+    var ins = Session.$instance;
+    if (!ins) {
+        ins = new Session();
+        Session.$instance = ins;
+    }
+    return ins;
+}
+
+Session.setSharedInstance = function(ins) {
+    Session.$instance = ins;
+}
+
+module.exports = Session;
