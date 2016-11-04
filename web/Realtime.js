@@ -453,7 +453,7 @@ function server_onClientConnected(socket) {
             if (handler) {
                 handler(data[2], socket, function(result) {
                     if (!socket.ack(rqid, result)) {
-                        traceError("handle command *" + type + "* error --> " + err.toString());
+                        traceError("handle command *" + type + "* error --> " + result.toString());
                     }
                 });
             } else {
