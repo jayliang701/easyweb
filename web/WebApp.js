@@ -36,6 +36,18 @@ App.use(BODY_PARSER.json());
 App.use(METHOD_OVERRIDE());
 App.use(COOKIE());
 App.use(EXPRESS.static(PATH.join(global.APP_ROOT, "client/res")));
+App.use(function(req, res, next) {
+    req.callAPI = function(method, params, callBack, user) {
+        method = method.split(".");
+        var service = SERVICE_MAP[method[0]];
+        if (!service || !service.hasOwnProperty(method[1])) {
+            res.sayError(CODES.NO_SUCH_METHOD, "NO_SUCH_METHOD");
+            return;
+        }
+        req.__callAPI(service[method[1]], params, user, callBack);
+    }
+    next();
+});
 WRP.register(App, "middle");
 
 var SERVICE_MAP = { };

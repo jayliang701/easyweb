@@ -1,6 +1,6 @@
 {
   "name": "magicfish_web",
-  "version": "1.4.5",
+  "version": "1.4.6",
   "description": "None",
   "main": "index.js",
   "scripts": {
