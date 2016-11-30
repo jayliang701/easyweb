@@ -31,8 +31,8 @@ App.use(function(req, res, next) {
 });
  */
 WRP.register(App, "head");
-App.use(BODY_PARSER.urlencoded({ extended: true }));
-App.use(BODY_PARSER.json());
+App.use(BODY_PARSER.urlencoded({ extended: true, limit:'5mb' }));
+App.use(BODY_PARSER.json({limit:'5mb'}));
 App.use(METHOD_OVERRIDE());
 App.use(COOKIE());
 App.use(EXPRESS.static(PATH.join(global.APP_ROOT, "client/res")));

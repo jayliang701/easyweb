@@ -1,6 +1,7 @@
 /**
  * Created by Jay on 2016/1/4.
  */
+var Utils = require("magicfish_web/utils/Utils");
 var gulp = require('gulp');
 var gutil = require('gulp-util');
 var through = require('through2');
@@ -58,9 +59,8 @@ module.exports = function (options) {
             jsPath = jsPath.replace("src=\"", "");
             jsPath = jsPath.substring(0, jsPath.indexOf("\""));
             jsPath = jsPath.trim();
-            //console.log("merged ==> " + jsPath);
             jsList.push(jsPath);
-            content = content.replace(block, '<script>%' + jsPath + '"%</script>');
+            content = content.replace(block, '<script>%' + jsPath + '%</script>');
         });
 
         jsList = jsList || [];
@@ -74,53 +74,63 @@ module.exports = function (options) {
             cssPath = cssPath.replace("href=\"", "");
             cssPath = cssPath.substring(0, cssPath.indexOf("\""));
             cssPath = cssPath.trim();
-            //console.log("merged ==> " + cssPath);
             cssList.push(cssPath);
-            content = content.replace(block, '<css>%' + cssPath + '"%</css>');
+            content = content.replace(block, '<css>%' + cssPath + '%</css>');
         });
 
         jsList = jsList || [];
         cssList = cssList || [];
 
-        var worked = 0;
-
-        var done = function() {
-            worked ++;
-            if (worked >= (jsList.length + cssList.length)) {
-                file.contents = new Buffer(content);
-                cb(null, file);
-            }
-        }
+        var q = [];
 
         jsList.forEach(function(jsPath) {
-            var path = PATH.resolve(buildPath, shortPath(jsPath));
-            FS.readFile(path, function(err, data) {
-                var block = '<script>%' + jsPath + '"%</script>';
-                if (err) {
-                    console.log("[Warning] no such file ---> " + path);
-                    content.replace(block, '');
-                } else {
-                    var all = data.toString("utf8");
-                    content = content.replace(block, '<script>' + all + '</script>');
-                }
-                done();
+            q.push(function(cb2) {
+                var path = PATH.resolve(buildPath, shortPath(jsPath));
+                FS.readFile(path, function(err, data) {
+                    console.log("merged js ==> " + jsPath);
+                    var block = '<script>%' + jsPath + '%</script>';
+                    if (err) {
+                        console.log("[Warning] no such file ---> " + path);
+                        content.replace(block, '');
+                    } else {
+                        var all = data.toString("utf8");
+                        content = content.replace(block, '<script>' + all + '</script>');
+                        content = content.replace(block, '');
+                    }
+                    cb2(err);
+                });
             });
         });
 
         cssList.forEach(function(cssPath) {
-            var path = PATH.resolve(buildPath, shortPath(cssPath));
-            FS.readFile(path, function(err, data) {
-                var block = '<css>%' + cssPath + '"%</css>';
-                if (err) {
-                    console.log("[Warning] no such file ---> " + path);
-                    content.replace(block, '');
-                } else {
-                    var all = data.toString("utf8");
-                    content = content.replace(block, '<style>' + all + '</style>');
-                }
-                done();
+            q.push(function(cb2) {
+                var path = PATH.resolve(buildPath, shortPath(cssPath));
+                FS.readFile(path, function(err, data) {
+                    console.log("merged css ==> " + cssPath);
+                    var block = '<css>%' + cssPath + '%</css>';
+                    if (err) {
+                        console.log("[Warning] no such file ---> " + path);
+                        content.replace(block, '');
+                    } else {
+                        var all = data.toString("utf8");
+                        content = content.replace(block, '<style>' + all + '</style>');
+                        content = content.replace(block, '');
+                    }
+                    cb2(err);
+                });
             });
         });
-        //console.log("------------- " + file.path + " -------------");
+        runAsQueue(q, function(err) {
+            console.log('merge completed');
+            console.log("------------- " + file.path + " -------------");
+            if (err) {
+                cb(err);
+            } else {
+                content = content.replace(/@charset "UTF-8";/img, '');
+                file.contents = new Buffer(content);
+                cb(null, file);
+            }
+        });
+
     });
 };

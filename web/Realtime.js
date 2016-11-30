@@ -179,9 +179,10 @@ exports.notifyToRoom = function(room, event, data, cmd, from) {
 }
 
 exports.getUserConnections = function(userID, callBack, renderFunc) {
-    //traceLog("try to notify client --> " + userid);
+    //traceLog("try to notify client --> " + userID);
     var key = formatRedisKey(userID);
     Redis.do("ZREVRANGE", [ key, 0, 0 ], function(socketIDs, err) {
+        //traceLog("find connections --> ", socketIDs);
         if (socketIDs && socketIDs.length > 0) {
             var sockets = [];
             socketIDs.forEach(function(socketID) {
@@ -378,7 +379,7 @@ function server_onClientConnected(socket) {
         Redis.multi(tasks, function(flag) {
             if (flag) {
                 server.initedCount ++;
-                socket.emit("$init", { msg:"hello", time:Date.now() });
+                socket.emit("$init", { msg:"hello", time:Date.now(), socketID:socket.id, clientID:socket.clientID });
                 if (DEBUG) {
                     traceLog("*client@" + socket.clientID + "@" + socket.id + "* from " + socket.info.ip + ":" + socket.info.port + " is shakeHanded.");
 
