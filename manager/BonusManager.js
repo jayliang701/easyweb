@@ -41,7 +41,6 @@ function init(ModelAgent) {
  otherParams: 其他参数，可选，可为null, 可用于传入自定义奖励，例如：otherParams = { customBonus:{ point:20 } }
  */
 function addBonus(mainKey, key, info, callBack, otherParams) {
-    console.log(arguments);
     var bobj = BONUS;
     var path = key.split('.');
     for (var i = 0; i < path.length; i++) {

@@ -353,6 +353,29 @@ function server_onClientConnected(socket) {
         socket.emit("sync", { type:type, params:data });
     }
 
+    socket.execCommand = function(data) {
+        var rqid = data[0];
+        var type = data[1];
+
+        traceLog(`client *${socket.clientID}* send command ---> [${type}${rqid ? ("::" + rqid) : ""}] `, data.params);
+
+        //if (DEBUG) traceLog("*client@" + sess.userid + "* from " + socket.info.ip + ":" + socket.info.port + " request sync --> " + data.type);
+
+        var handler = handlers[type];
+        if (handler) {
+            handler(data[2], socket, function(result) {
+                if (!socket.ack(rqid, result)) {
+                    traceError("handle command *" + type + "* error --> " + result.toString());
+                }
+            });
+        } else {
+            if (DEBUG) {
+                var func = DEBUG_HANDLERS[type];
+                func && func(data.params, socket);
+            }
+        }
+    }
+
     socket.shakeHand = function() {
 
         var lastShakeHandTime = socket.info.shakeHandTime;

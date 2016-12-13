@@ -306,7 +306,7 @@ function processUpdateParams(params) {
     return changes;
 }
 
-function update(dbName, target, filter, params, callBack, upsert) {
+function update(dbName, target, filter, params, callBack, upsert, justOne) {
     var db = getDBByName(dbName);
 
     if (!db) {
@@ -321,7 +321,7 @@ function update(dbName, target, filter, params, callBack, upsert) {
 
     targetCol.update(filter,
         changes,
-        {upsert:upsert ? true : false, multi:true, w:1},
+        {upsert:upsert ? true : false, multi:justOne ? false : true, w:1},
         function(err, result) {
             if (err) console.error(target + ".update failed ==> " + err);
             var numUp = 0;
@@ -336,6 +336,44 @@ function update(dbName, target, filter, params, callBack, upsert) {
             }
             if (callBack) {
                 callBack(numUp, err);
+            }
+        });
+}
+
+function updateOne(dbName, target, filter, params, callBack, upsert) {
+    update(dbName, target, filter, params, callBack, upsert, true);
+}
+
+function findAndModify(dbName, target, filter, params, callBack, options) {
+    var db = getDBByName(dbName);
+
+    if (!db) {
+        if (callBack) {
+            callBack(0, createNotOpenErr(dbName));
+        }
+        return;
+    }
+    var targetCol = db.collection(target);
+
+    var changes = processUpdateParams(params);
+
+    options = options || { upsert:false, multi:false, w:1 };
+    var sort = options.sort || null;
+    delete options["sort"];
+
+    targetCol.findAndModify(filter, sort, changes, options,
+        function(err, result) {
+            if (err) console.error(target + ".update failed ==> " + err);
+            var doc = null;
+            try {
+                if (typeof result == "object") {
+                    doc = result.value;
+                }
+            } catch (exp) {
+                doc = null;
+            }
+            if (callBack) {
+                callBack(doc, err);
             }
         });
 }
@@ -490,5 +528,7 @@ exports.ensureIndex = ensureIndex;
 exports.listAllCollections = listAllCollections;
 exports.count = count;
 exports.update = update;
+exports.updateOne = updateOne;
+exports.findAndModify = findAndModify;
 exports.remove = remove;
 
