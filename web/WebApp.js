@@ -296,7 +296,7 @@ function registerRouter(r) {
                 } else {
                     res.render(view, { setting:COMMON_RESPONSE_DATA, data:data, user:user, now:now, query:req.query });
                 }
-            };
+            }.bind(res);
 
             var r_handle = null;
             if(req.method == "POST"){
@@ -306,9 +306,18 @@ function registerRouter(r) {
             }
 
             if (r_handle != null) {
-                r_handle(req, res, function(data, err, useView) {
+                var func = function(data, err, useView) {
                     output(useView ? useView : r.view, user, data, err);
-                }, user);
+                };
+                func.status = function(code) {
+                    res.status(code);
+                    return {
+                        call: function(view, user, data, err) {
+                            func.apply(res, [ view, user, data, err ]);
+                        }
+                    };
+                };
+                r_handle(req, res, func, user);
             } else {
                 output(r.view, user);
             }

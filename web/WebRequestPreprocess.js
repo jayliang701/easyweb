@@ -54,7 +54,7 @@ function sayError() {
             msg = arguments[0].msg;
         } else {
             code = CODES.SERVER_ERROR;
-            msg = arguments[0].toString();
+            msg = arguments[0].message || arguments[0].toString();
         }
     } else {
         code = arguments[0] == undefined ? CODES.SERVER_ERROR : arguments[0];
@@ -63,7 +63,7 @@ function sayError() {
     if (!msg) {
         msg = "unknown";
     } else if (typeof msg == 'object') {
-        msg = msg.toString();
+        msg = msg.message || msg.toString();
     }
     console.error(this._req.body.method + " > ", "code: " + code, "msg: " + msg);
     this.json({code:code, data:{}, msg:msg});

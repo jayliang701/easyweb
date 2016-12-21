@@ -33,6 +33,10 @@ global.__defineGetter__('_', function() {
     return _;
 });
 
+global.__defineGetter__('iconv', function() {
+    return ICONV;
+});
+
 global.__defineGetter__('cloneObject', function() {
     return function(obj) {
         return JSON.parse(JSON.stringify(obj));
