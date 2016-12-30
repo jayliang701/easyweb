@@ -537,7 +537,9 @@ exports.fetchFirstOneFromHash = function(hash) {
 
 exports.parseIP = function (req) {
     try {
-        var ip = req.headers['x-forwarded-for'] ||
+        var ip = req.headers['X-Real-IP'] ||
+            req.headers['X-Forwarded-For'] ||
+            req.headers['x-forwarded-for'] ||
             req.connection.remoteAddress ||
             req.socket.remoteAddress ||
             req.connection.socket.remoteAddress;
