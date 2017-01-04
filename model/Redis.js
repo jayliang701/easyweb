@@ -444,6 +444,10 @@ var groups = {};
 var KEY_CACHE = {};
 var GROUP_REG = /@[a-zA-Z0-9]+->/;
 
+exports.createClient = function(config) {
+    return REDIS.createClient(config.port, config.host, { auth_pass: config.pass });
+}
+
 exports.start = function(host, port, pass, prefixName, callBack) {
 
     if (typeof prefixName == "object") {

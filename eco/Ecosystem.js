@@ -15,6 +15,10 @@ var server;
 var server_notifyHandlers = {};
 var client_registerHandler = {};
 
+exports.getSetting = function() {
+    return Setting.ecosystem;
+}
+
 exports.onServeReady = function(target, handler) {
     if (!client_registerHandler[target]) client_registerHandler[target] = [];
     client_registerHandler[target].push(handler);
