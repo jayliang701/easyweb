@@ -175,7 +175,18 @@ exports.notify = function(to, event, data, cmd, from) {
 
 exports.notifyToRoom = function(room, event, data, cmd, from) {
     data = cloneObject(data);
-    server && server.to(room).emit("sync", { type:event, params:data, cmd:cmd, from:from, room:room });
+    if (server) {
+        var packet = { type:event, params:data, cmd:cmd, from:from, room:room };
+        server.to(room).emit("sync", packet);
+    }
+}
+
+exports.notifyToAll = function(event, data, cmd, from) {
+    data = cloneObject(data);
+    if (server) {
+        var packet = { type:event, params:data, cmd:cmd, from:from };
+        server.sockets.emit('sync', packet);
+    }
 }
 
 exports.getUserConnections = function(userID, callBack, renderFunc) {
