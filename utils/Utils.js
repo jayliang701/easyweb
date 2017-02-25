@@ -623,7 +623,7 @@ exports.checkPhoneFormat = function(str){
 //验证大陆手机号码
 exports.cnCellPhoneCheck = function(str){
     var re = /^1\d{10}$/;
-    if(str.indexOf(",") != -1){
+    if(String(str).hasValue() && str.indexOf(",") != -1){
         var p = str.split(",");
         p.forEach(function(v){
            if(!re.test(v)){
