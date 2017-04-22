@@ -1,6 +1,6 @@
 {
   "name": "magicfish_web",
-  "version": "1.5.5",
+  "version": "1.5.6",
   "description": "None",
   "main": "index.js",
   "scripts": {
@@ -22,7 +22,7 @@
   },
   "homepage": "https://github.com/jayliang701/easyweb",
   "dependencies": {
-    "async": "^1.5.2",
+    "async": "<=2.2.0",
     "body-parser": "^1.15.0",
     "bufferhelper": "^0.2.1",
     "captchapng": "0.0.1",

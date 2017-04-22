@@ -73,7 +73,7 @@ exports.save = function(key, val, expired, callBack) {
     if (typeof val == "object") {
         val = JSON.stringify(val);
     }
-    if (key.substr(0, 1) == "@") {
+    if (key.indexOf("@") == 0) {
         key = exports.join(key, CACHE_PREFIX);
     } else {
         key = exports.join(CACHE_PREFIX + key);
@@ -117,7 +117,6 @@ exports.read = function(key, callBack) {
                     //res is not a json string
                 }
             }
-            //console.log('read cache [' + key + '] from 2.');
             if (callBack) callBack(res);
         }
     });

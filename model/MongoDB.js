@@ -44,6 +44,7 @@ function open(host, port, name, option, callBack, asDefault) {
 
     if (option && option.driver == "mongoose") {
         var mongoose = require("mongoose");
+        mongoose.Promise = global.Promise;
         newDB = mongoose.createConnection("mongodb://" + host + ":" + port + "/" + name, option);
         process.nextTick(done);
     } else {
