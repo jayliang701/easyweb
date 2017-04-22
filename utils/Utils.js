@@ -72,6 +72,13 @@ if (!Array.prototype.shuffle) {
     };
 }
 
+exports.modules = {
+    request: require('request'),
+    min_request: require('min-request'),
+    iconv: require('iconv-lite'),
+    bufferhelper: require('bufferhelper')
+};
+
 exports.runQueueTask = function(tasks, callBack) {
     return Async.waterfall(tasks, callBack);
 }
