@@ -4,6 +4,7 @@
 
 var Utils = require("./../utils/Utils");
 var CODES = require("./../ErrorCodes");
+var Redis = require("../model/Redis");
 var request = require("min-request");
 
 var agent;
@@ -12,6 +13,7 @@ var Setting = global.SETTING;
 var DEBUG = global.VARS.debug;
 
 var server;
+var redisSub, redisPub;
 var server_notifyHandlers = {};
 var client_registerHandler = {};
 
@@ -130,7 +132,11 @@ var Client = function(name) {
 
 Client.clients = {};
 
-exports.init = function(config, customSetting) {
+exports.init = function(config, customSetting, callBack) {
+
+    callBack = arguments[arguments.length - 1];
+    if (typeof callBack != "function") callBack = null;
+
     Setting = customSetting || Setting;
     config = config || {};
     agent = config.agent;
@@ -183,43 +189,69 @@ exports.init = function(config, customSetting) {
             client.connect(name, def.message);
         }
     }
+
+    /* setup redis */
+    var redisReady = function () {
+        //Todo: some works after redisSub/redisPub are ready
+        if (!redisSub.__ready || !redisPub.__ready) return;
+        callBack && callBack();
+    };
+
+    var redisConfig = Setting.ecosystem.redis || global.SETTING.model.redis;
+    redisSub = Redis.createClient(redisConfig);
+    redisPub = Redis.createClient(redisConfig);
+    redisSub.on("message", function(channel, message) {
+        console.log(channel, message);
+        if (channel == "notify") {
+            try {
+                message = JSON.parse(message);
+            } catch (err) {
+                return console.error("parse redis notify error:", err);
+            }
+
+            var client = message[0];
+            var event = message[1];
+            var data = message[2];
+
+            var list = server_notifyHandlers[client + "@" + event];
+            if (list && list.length > 0) {
+                list.forEach(function(handler) {
+                    if (handler) handler(data);
+                });
+            }
+
+            list = server_notifyHandlers[event];
+            if (list && list.length > 0) {
+                list.forEach(function(handler) {
+                    if (handler) handler(data);
+                });
+            }
+        }
+    });
+    redisSub.on("connect", function() {
+        redisSub.subscribe("notify", function() {
+            redisSub.__ready = true;
+            redisReady();
+        });
+    });
+    redisPub.on("connect", function() {
+        redisPub.__ready = true;
+        redisReady();
+    });
 }
 
 exports.broadcast = function(event, data, callBack) {
-    if (!server) return;
-
-    //if (DEBUG) console.log("[Ecosystem] broadcast message --> " + event + " : " + (data ? JSON.stringify(data) : {}));
     if (event.indexOf("@") > 0) {
         event = event.split("@");
-        var target = event[0];
         event = event[1];
-        exports.fire(target, event, data, callBack);
-    } else {
-        var servers = Setting.ecosystem.servers;
-        if (servers) {
-            var p = [];
-            var errs;
-            for (var target in servers) {
-                (function(s) {
-                    p.push(function(cb) {
-                        exports.fire(s, event, data, function(err) {
-                            if (err) {
-                                if (!errs) errs = {};
-                                errs[s] = err;
-                            }
-                            cb();
-                        });
-                    });
-                })(target);
-            }
-            runAsParallel(p, function() {
-                if (callBack) callBack(errs);
-            });
-        }
     }
+    exports.__fireToAll(event, data, function(err, body) {
+        if (callBack) callBack(err, body);
+    });
 }
 
 exports.fire = function(target, event, data, callBack) {
+    if (!server) return;
     //var startTime = Date.now();
     var address = Setting.ecosystem.servers[target]["message"];
     //if (DEBUG) console.log("[Ecosystem] *" + Setting.ecosystem.name + "* fire message to *" + target + "@" + address + "* --> " + event + " : " + (data ? JSON.stringify(data) : {}));
@@ -256,6 +288,14 @@ exports.__fire = function(target, event, data, callBack) {
                 callBack(err, body);
             }
         });
+}
+
+exports.__fireToAll = function(event, data, callBack) {
+    if (!redisPub) return;
+    redisPub.publish("notify", JSON.stringify([ Setting.ecosystem.name, event, data ]), function(err) {
+        if (err) console.error(`redisPub.publish error ---> ${err}`);
+        callBack && callBack(err);
+    });
 }
 
 exports.listen = function(target, event, handler) {
