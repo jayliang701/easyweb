@@ -1,10 +1,14 @@
 /**
  * Created by Jay on 2015/9/25.
  */
+const CLUSTER = require('cluster');
 var PATH = require("path");
 var Utils = require("./utils/Utils");
 
 function App() {
+    global.pm2 = process.env.hasOwnProperty("NODE_APP_INSTANCE") && process.env.NODE_APP_INSTANCE >= 0;
+    global.workerID = global.pm2 ? process.env.NODE_APP_INSTANCE : (CLUSTER.worker ? (CLUSTER.worker.id - 1) : 0);
+
     var args = Utils.cloneObject(process.argv);
     var runArgs = args.splice(2);
     global.VARS = {};
