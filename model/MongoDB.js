@@ -46,6 +46,7 @@ function open(host, port, name, option, callBack, asDefault) {
         var mongoose = require("mongoose");
         mongoose.Promise = global.Promise;
         newDB = mongoose.createConnection("mongodb://" + host + ":" + port + "/" + name, option);
+        newDB.__driver = mongoose;
         process.nextTick(done);
     } else {
         var MongoClient = require("mongodb").MongoClient;

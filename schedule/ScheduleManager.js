@@ -1,14 +1,6 @@
-/**
- * Created by Jay on 10/29/14.
- *
- * { "type":2, "time":"00:02:00", "script":"daily_counting_data" },
- * { "type":1, "firstDelay":0, "duration":20, "disableTime":[ "23:58:00-23:59:59", "00:00:00-00:02:00" ], "waitCallBack":true, "script":"cninfo_zxb", "option":{ "request":{ "encoding":"gb2312", "timeout":8 } } },
- */
-
-
 var FS = require("fs");
 var PATH = require("path");
-var Utils = require("../utils/Utils.js");
+var Utils = require("../utils/Utils");
 
 var config;
 
@@ -18,6 +10,7 @@ var intervalThreadPool = [];
 var dailyThreadPool = [];
 
 var DEBUG;
+var setting;
 
 function checkIsInTimeRange(startTime, endTime) {
     var now = new Date();
@@ -40,12 +33,14 @@ function checkIsInTimeRange(startTime, endTime) {
     return true;
 }
 
-exports.start = function(debug) {
+exports.start = function(option) {
+    option = option || {};
+    setting = option;
 
-    DEBUG = debug;
+    DEBUG = setting.hasOwnProperty("debug") ? setting.debug : global.VARS.debug;
 
     if (!config) {
-        config = FS.readFileSync(PATH.join(global.APP_ROOT, "server/schedule/localdev.json"));
+        config = FS.readFileSync(PATH.join(global.APP_ROOT, "server/config/" + global.VARS.env + "/schedule.json"));
         config = JSON.parse(config.toString("utf8"));
     }
 
@@ -150,7 +145,7 @@ function timeRunning() {
             thread.dailyExecuteTime = scheduleTime;
             var nextTime = new Date();
             nextTime.setTime(scheduleTime);
-            if (DEBUG) console.log("daily schedule [" + thread.data.script + "] will be executed at: " + nextTime.toLocaleString());
+            DEBUG && console.log("daily schedule [" + thread.data.script + "] will be executed at: " + nextTime.toLocaleString());
         }
 
         var d = nowms - thread.dailyExecuteTime;
@@ -166,16 +161,16 @@ function execScript(script, callBack, option, disableTime) {
     if (disableTime) {
         for (var i = 0; i < disableTime.length; i++) {
             if (checkIsInTimeRange(disableTime[i][0], disableTime[i][1])) {
-                if (DEBUG) console.log("*" + script + "* in disable time ==> skip.");
+                DEBUG && console.log("*" + script + "* in disable time ==> skip.");
                 setTimeout(callBack, 100);
                 return;
             }
         }
     }
-    if (DEBUG) console.log("ready to execute script ==> " + script);
+    DEBUG && console.log("ready to execute script ==> " + script);
     var scriptJS = global.requireModule("schedule/" + script + ".js");
     scriptJS.exec(function(err) {
-        if (err) console.error("*" + script + "* throws an error ==> " + err.toString());
+        if (err) console.error("*" + script + "* throws an error ==> ", err);
         if (callBack) callBack(err);
     }, option ? JSON.parse(JSON.stringify(option)) : {});
 }
