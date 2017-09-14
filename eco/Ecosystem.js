@@ -155,7 +155,7 @@ exports.init = function(config, customSetting, callBack) {
             var event = params.event;
             var data = params.data;
 
-            //if (DEBUG) console.log("receive message from *" + client + "* ---> [" + event + "]");
+            console.log("receive message from *" + client + "* ---> [" + event + "]");
 
             res.end("{}");
 
@@ -193,8 +193,10 @@ exports.init = function(config, customSetting, callBack) {
     /* setup redis */
     var redisReady = function () {
         //Todo: some works after redisSub/redisPub are ready
-        if (!redisSub.__ready || !redisPub.__ready) return;
-        callBack && callBack();
+        if (!redisSub.__ready || !redisPub.__ready || !callBack) return;
+        var func = callBack;
+        callBack = null;
+        func && func();
     };
 
     var redisConfig = Setting.ecosystem.redis || global.SETTING.model.redis;
@@ -240,11 +242,13 @@ exports.init = function(config, customSetting, callBack) {
     redisSub.on("connect", function() {
         redisSub.subscribe("notify", function() {
             redisSub.__ready = true;
+            console.log("redisSub is connected and ready to get notify...");
             redisReady();
         });
     });
     redisPub.on("connect", function() {
         redisPub.__ready = true;
+        console.log("redisPub is connected...");
         redisReady();
     });
 }
@@ -270,7 +274,7 @@ exports.fire = function(target, event, data, callBack) {
     if (!server) return;
     //var startTime = Date.now();
     var address = Setting.ecosystem.servers[target]["message"];
-    //if (DEBUG) console.log("[Ecosystem] *" + Setting.ecosystem.name + "* fire message to *" + target + "@" + address + "* --> " + event + " : " + (data ? JSON.stringify(data) : {}));
+    console.log("[Ecosystem] *" + Setting.ecosystem.name + "* fire message to *" + target + "@" + address + "* --> " + event + " : " + (data ? JSON.stringify(data) : {}));
 
     exports.__fire(address, event, data, function(err, body) {
         if (callBack) callBack(err, body);
