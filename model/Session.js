@@ -81,11 +81,16 @@ Session.prototype.check = function(id, token, callBack) {
     var cache = Memory.read(key);
     if (cache) {
         if (this.checkSess(id, token, cache)) {
-            callBack(1, cache);
+            callBack && callBack(1, cache);
+            return;
         } else {
-            callBack(0);
+            //callBack(0);
+
+            //Update on 2017-9-15
+            //Fixed for cluster mode
+            //no match in memory level, need to check in redis level
+            cache = -1;
         }
-        return;
     }
 
     var ins = this;
@@ -95,6 +100,10 @@ Session.prototype.check = function(id, token, callBack) {
         } else {
             if (sess) {
                 if (ins.checkSess(id, token, sess)) {
+                    if (cache == -1) {
+                        //need to update cache level
+                        Memory.save(key, sess, ins.config.cacheExpireTime, null);
+                    }
                     callBack(1, sess);
                 } else {
                     callBack(0);
