@@ -11,16 +11,13 @@ var CNAME = "__bonus_check";
 var BONUS = {};
 
 function getBonusDetail(key){
-    if(key.indexOf(".") != -1){
-        var path = key.split(",");
-        var obj = BONUS;
-        for (var i = 0; i < path.length; i++) {
-            obj = obj[path[i]];
-        }
-        return obj;
-    }else{
-        return BONUS[key];
+    var bobj = BONUS;
+    var path = key.split('.');
+    for (var i = 0; i < path.length; i++) {
+        bobj = bobj[path[i]];
     }
+    if (bobj == BONUS) return null;
+    return bobj;
 }
 
 function init(ModelAgent) {
