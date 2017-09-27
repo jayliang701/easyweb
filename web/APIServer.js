@@ -75,15 +75,6 @@ function CustomMiddleware() {
         res._req = req;
         req._clientIP = Utils.parseIP(req);
 
-        var identifyid = req.headers["identifyid"];
-        if (!identifyid) {
-            identifyid = Utils.md5(req.headers["user-agent"] + req._clientIP + Date.now());
-            res.setHeader("identifyid", identifyid);
-
-            //console.log("new identify_id --> " + identify_id);
-        }
-        req._identifyID = identifyid;
-
         jam.preprocess(req, res);
 
         res.profile = function() {
